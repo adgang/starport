@@ -89,7 +89,7 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genn
 			return err
 		}
 
-		content := typed.PatchGenesisTypeImport(replacer, f.String())
+		content := f.String()
 
 		templateTypesDefault := `%[2]vList: []%[2]v{},
 %[1]v`

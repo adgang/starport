@@ -11,6 +11,7 @@ import (
 	"github.com/tendermint/starport/starport/pkg/placeholder"
 	"github.com/tendermint/starport/starport/pkg/xgenny"
 	"github.com/tendermint/starport/starport/pkg/xstrings"
+	"github.com/tendermint/starport/starport/services/astutils"
 	"github.com/tendermint/starport/starport/templates/field/plushhelpers"
 	"github.com/tendermint/starport/starport/templates/module"
 	"github.com/tendermint/starport/starport/templates/typed"
@@ -86,16 +87,24 @@ if !k.IsBound(ctx, genState.PortId) {
 func genesisTypesModify(replacer placeholder.Replacer, opts *CreateOptions) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis.go")
+
+		// add imports
+		astHelper, err := astutils.NewAstHelper(path)
+		defer astHelper.Close()
+
+		if err != nil {
+			return err
+		}
+
+		astHelper.AddNamedImport("github.com/cosmos/ibc-go/modules/core/24-host", "host")
+		astHelper.Write()
+
 		f, err := r.Disk.Find(path)
 		if err != nil {
 			return err
 		}
 
-		// Import
-		templateImport := `host "github.com/cosmos/ibc-go/modules/core/24-host"
-%s`
-		replacementImport := fmt.Sprintf(templateImport, typed.PlaceholderGenesisTypesImport)
-		content := replacer.Replace(f.String(), typed.PlaceholderGenesisTypesImport, replacementImport)
+		content := f.String()
 
 		// Default genesis
 		templateDefault := `PortId: PortID,

@@ -52,6 +52,20 @@ func (astHelper *AstHelper) AddImport(pkg string) (done bool) {
 	return !alreadyImported
 }
 
+func (astHelper *AstHelper) AddNamedImport(pkg string, name string) (done bool) {
+
+	alreadyImported := astutil.UsesImport(astHelper.astFile, pkg)
+
+	if !alreadyImported {
+		fmt.Println("adding import:" + pkg + " as " + name)
+		astutil.AddNamedImport(astHelper.fileSet, astHelper.astFile, name, pkg)
+	} else {
+		fmt.Println("import of " + pkg + " already added")
+	}
+
+	return !alreadyImported
+}
+
 func (astHelper *AstHelper) Print() {
 	printer.Fprint(os.Stdout, astHelper.fileSet, astHelper.astFile)
 }
