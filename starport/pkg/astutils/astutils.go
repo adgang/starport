@@ -21,6 +21,14 @@ type AstHelper struct {
 	file    string
 }
 
+func (astHelper *AstHelper) AstFile() *ast.File {
+	return astHelper.astFile
+}
+
+func (astHelper *AstHelper) FileSet() *token.FileSet {
+	return astHelper.fileSet
+}
+
 func NewAstHelper(file string) (*AstHelper, error) {
 	astHelper := new(AstHelper)
 	fileSet := token.NewFileSet()
@@ -68,7 +76,11 @@ func (astHelper *AstHelper) AddNamedImport(pkg string, name string) (done bool) 
 	return !alreadyImported
 }
 
-func (astHelper *AstHelper) AddToState(key string, value string) {
+func (astHelper *AstHelper) AddToState(typeName string) {
+
+	key := fmt.Sprintf(`%[1]vList`, typeName)
+	value := fmt.Sprintf(`%[1]v`, typeName)
+
 	fmt.Println(key, value)
 	applyFunc := func(cursor *astutil.Cursor) bool {
 		switch x := cursor.Node().(type) {
@@ -122,6 +134,31 @@ func (astHelper *AstHelper) Write() error {
 	// ast.Fprint(os.Stdout, astHelper.fileSet, astHelper.astFile, nil)
 	// return ast.Fprint(f, astHelper.fileSet, astHelper.astFile, nil)
 	return os.WriteFile(astHelper.file, buf.Bytes(), 0777)
+	// fmt.Println("writing to file")
+	// return printer.Fprint(f, astHelper.fileSet, astHelper.astFile)
+
+}
+
+func (astHelper *AstHelper) Content() (string, error) {
+
+	var buf bytes.Buffer
+
+	err := format.Node(&buf, astHelper.fileSet, astHelper.astFile)
+	fmt.Println("errr:")
+	if err != nil {
+		fmt.Println(err)
+		return buf.String(), err
+	}
+	// fmt.Println(buf.String())
+
+	// f, err := os.Create(astHelper.file)
+	// fmt.Println("Couldnot open file")
+	// if err != nil {
+	// 	return err
+	// }
+	// ast.Fprint(os.Stdout, astHelper.fileSet, astHelper.astFile, nil)
+	// return ast.Fprint(f, astHelper.fileSet, astHelper.astFile, nil)
+	return buf.String(), nil
 	// fmt.Println("writing to file")
 	// return printer.Fprint(f, astHelper.fileSet, astHelper.astFile)
 

@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/gobuffalo/genny"
+	"github.com/tendermint/starport/starport/pkg/astutils"
 	"github.com/tendermint/starport/starport/pkg/placeholder"
-	"github.com/tendermint/starport/starport/services/astutils"
 
 	"github.com/tendermint/starport/starport/templates/module"
 	"github.com/tendermint/starport/starport/templates/typed"
@@ -19,8 +19,6 @@ func genesisModify(replacer placeholder.Replacer, opts *typed.Options, g *genny.
 	g.RunFn(genesisTestsModify(replacer, opts))
 	g.RunFn(genesisTypesTestsModify(replacer, opts))
 }
-
-//as ass
 
 func genesisProtoModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
@@ -71,34 +69,30 @@ func genesisProtoModify(replacer placeholder.Replacer, opts *typed.Options) genn
 func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
 
 	return func(r *genny.Runner) error {
-
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis.go")
 
-		astHelper, err := astutils.NewAstHelper(path)
-		defer astHelper.Close()
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
 
 		if err != nil {
 			return err
 		}
 
-		astHelper.AddImport("fmt")
-		astHelper.Write()
-
-		f, err := r.Disk.Find(path)
+		_, err = dstHelper.AddImport("fmt")
 		if err != nil {
 			return err
 		}
 
-		content := f.String()
+		key := fmt.Sprintf(`%[1]vList`, opts.TypeName.UpperCamel)
+		typeName := fmt.Sprintf(`%[1]v`, opts.TypeName.UpperCamel)
 
-		templateTypesDefault := `%[2]vList: []%[2]v{},
-%[1]v`
-		replacementTypesDefault := fmt.Sprintf(
-			templateTypesDefault,
-			typed.PlaceholderGenesisTypesDefault,
-			opts.TypeName.UpperCamel,
-		)
-		content = replacer.Replace(content, typed.PlaceholderGenesisTypesDefault, replacementTypesDefault)
+		typed.AddTypeToGenesisState(dstHelper, key, typeName)
+
+		content, err := dstHelper.Content()
+
+		if err != nil {
+			return err
+		}
 
 		templateTypesValidate := `// Check for duplicated ID in %[2]v
 %[2]vIdMap := make(map[uint64]bool)

@@ -12,6 +12,7 @@ require (
 	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/cosmos/cosmos-sdk v0.44.4
 	github.com/cosmos/go-bip39 v1.0.0
+	github.com/dave/dst v0.26.2
 	github.com/docker/docker v20.10.7+incompatible
 	github.com/emicklei/proto v1.9.0
 	github.com/fatih/color v1.12.0
@@ -31,10 +32,13 @@ require (
 	github.com/gorilla/rpc v1.2.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/imdario/mergo v0.3.12
+	github.com/jhump/protoreflect v1.10.1
 	github.com/jpillora/chisel v1.7.6
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mattn/go-zglob v0.0.3
 	github.com/moby/sys/mount v0.3.0 // indirect
+	github.com/openconfig/goyang v0.3.1 // indirect
+	github.com/oshothebig/pbast v0.0.0-20170925213915-84cdd26c3def // indirect
 	github.com/otiai10/copy v1.6.0
 	github.com/pelletier/go-toml v1.9.3
 	github.com/pkg/errors v0.9.1
@@ -52,7 +56,7 @@ require (
 	golang.org/x/mod v0.5.1
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/term v0.0.0-20201210144234-2321bbc49cbf
-	golang.org/x/tools v0.1.8 // indirect
+	golang.org/x/tools v0.1.8
 )
 
 replace (
