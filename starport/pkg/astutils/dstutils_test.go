@@ -202,7 +202,7 @@ import (
 `,
 
 			output: ``,
-			err:    fmt.Errorf("asdad"),
+			err:    fmt.Errorf("ast cannot be added as an import due to scope collision"),
 		},
 
 		{
@@ -215,6 +215,58 @@ import (
 			output: `package blah
 
 import xyz "ast"
+`,
+		},
+
+		{
+			name: "collision of named/aliased import",
+			input: `package blah
+import "ast"
+`,
+			pkg:        "bla",
+			added:      false,
+			importName: "ast",
+
+			output: `package blah
+
+import ast "xyz"
+`,
+			err: fmt.Errorf("bla cannot be added as an import due to scope collision"),
+		},
+
+		{
+			name: "collision of named/aliased import with another aliased",
+			input: `package blah
+import ast "ariz"
+`,
+			pkg:        "bla",
+			added:      false,
+			importName: "ast",
+
+			output: `package blah
+
+import ast "xyz"
+`,
+			err: fmt.Errorf("bla cannot be added as an import due to scope collision"),
+		},
+
+		{
+			name: "collision of named/aliased import with misc others",
+			input: `package blah
+import ast "ariz"
+import "buf"
+`,
+			pkg:        "bla",
+			added:      true,
+			importName: "bat",
+
+			output: `package blah
+
+import (
+	ast "ariz"
+	bat "bla"
+	"buf"
+)
 `,
 		},
 	}
@@ -243,7 +295,7 @@ import xyz "ast"
 				require.Equal(t, tc.output, content)
 
 			} else {
-				require.EqualError(t, err, "ast cannot be added as an import due to scope collision")
+				require.EqualError(t, err, tc.err.Error())
 			}
 
 		})
