@@ -72,12 +72,13 @@ import (
 
 func TestAddImport(t *testing.T) {
 	tests := []struct {
-		name   string
-		input  string
-		output string
-		pkg    string
-		added  bool
-		err    error
+		name       string
+		input      string
+		output     string
+		pkg        string
+		added      bool
+		err        error
+		importName string
 	}{
 
 		{
@@ -203,6 +204,19 @@ import (
 			output: ``,
 			err:    fmt.Errorf("asdad"),
 		},
+
+		{
+			name:       "adding named import to empty imports",
+			input:      `package blah`,
+			pkg:        "ast",
+			added:      true,
+			importName: "xyz",
+
+			output: `package blah
+
+import xyz "ast"
+`,
+		},
 	}
 
 	for _, tc := range tests {
@@ -210,7 +224,15 @@ import (
 		t.Run(tc.name, func(t *testing.T) {
 			helper, err := NewDstHelper("", tc.input)
 
-			added, err := helper.AddImport(tc.pkg)
+			var added bool
+
+			if tc.importName == "" {
+				added, err = helper.AddImport(tc.pkg)
+
+			} else {
+				added, err = helper.AddNamedImport(tc.pkg, tc.importName)
+
+			}
 			fmt.Println(err)
 			require.Equal(t, tc.added, added)
 

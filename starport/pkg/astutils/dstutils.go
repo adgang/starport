@@ -75,7 +75,7 @@ func addImportProcessor(astFile *ast.File, fileSet *token.FileSet, args ...inter
 }
 
 func addNamedImportProcessor(astFile *ast.File, fileSet *token.FileSet, args ...interface{}) (error, bool) {
-	done := astutil.AddNamedImport(fileSet, astFile, args[0].(string), args[1].(string))
+	done := astutil.AddNamedImport(fileSet, astFile, args[1].(string), args[0].(string))
 
 	return nil, done
 }
@@ -86,8 +86,7 @@ func lastFragment(pkgPath string) string {
 	return pkgName
 }
 
-func importExists(dstFile *dst.File, pkg string) (bool, bool) {
-	importName := lastFragment(pkg)
+func importExists(dstFile *dst.File, pkg string, importName string) (bool, bool) {
 	packageAlreadyImported := false
 	collision := false
 
@@ -120,7 +119,9 @@ func importExists(dstFile *dst.File, pkg string) (bool, bool) {
 
 func (dstHelper *DstHelper) AddImport(pkg string) (done bool, err error) {
 
-	collision, packageAlreadyImported := importExists(dstHelper.dstFile, pkg)
+	importName := lastFragment(pkg)
+
+	collision, packageAlreadyImported := importExists(dstHelper.dstFile, pkg, importName)
 
 	if collision {
 		return false, fmt.Errorf("%s cannot be added as an import due to scope collision", pkg)
@@ -136,7 +137,7 @@ func (dstHelper *DstHelper) AddImport(pkg string) (done bool, err error) {
 }
 
 func (dstHelper *DstHelper) AddNamedImport(pkg string, name string) (done bool, err error) {
-	collision, packageAlreadyImported := importExists(dstHelper.dstFile, pkg)
+	collision, packageAlreadyImported := importExists(dstHelper.dstFile, pkg, name)
 	if packageAlreadyImported {
 		return false, nil
 	}
@@ -145,7 +146,7 @@ func (dstHelper *DstHelper) AddNamedImport(pkg string, name string) (done bool, 
 		return false, fmt.Errorf("%s cannot be added as an import due to scope collision", pkg)
 	}
 
-	err, done = dstHelper.WithAst(addNamedImportProcessor, pkg)
+	err, done = dstHelper.WithAst(addNamedImportProcessor, pkg, name)
 
 	return true, err
 }
