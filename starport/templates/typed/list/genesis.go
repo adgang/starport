@@ -86,7 +86,7 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genn
 		key := fmt.Sprintf(`%[1]vList`, opts.TypeName.UpperCamel)
 		typeName := fmt.Sprintf(`%[1]v`, opts.TypeName.UpperCamel)
 
-		typed.AddTypeToGenesisState(dstHelper, key, typeName)
+		typed.AddKeysToDefaultGenesisState(dstHelper, key, typeName)
 
 		content, err := dstHelper.Content()
 
@@ -113,6 +113,7 @@ for _, elem := range gs.%[3]vList {
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
+
 		content = replacer.Replace(content, typed.PlaceholderGenesisTypesValidate, replacementTypesValidate)
 
 		newFile := genny.NewFileS(path, content)

@@ -29,10 +29,16 @@ func (dstHelper *DstHelper) FileSet() *token.FileSet {
 	return dstHelper.fileSet
 }
 
-func NewDstHelper(file string) (*DstHelper, error) {
+func NewDstHelper(file string, inputs ...interface{}) (*DstHelper, error) {
 	dstHelper := new(DstHelper)
 	fileSet := token.NewFileSet()
-	dstFile, err := decorator.ParseFile(fileSet, file, nil, parser.AllErrors|parser.ParseComments)
+	var src interface{}
+	if len(inputs) > 0 {
+		src = inputs[0]
+	} else {
+		src = nil
+	}
+	dstFile, err := decorator.ParseFile(fileSet, file, src, parser.AllErrors|parser.ParseComments)
 
 	dstHelper.fileSet = fileSet
 
@@ -49,14 +55,14 @@ func (dstHelper *DstHelper) Close() {
 
 type astFileProcess = func(astFile *ast.File, fileSet *token.FileSet, args ...interface{}) (error, bool)
 
-func (dstHelper *DstHelper) WithAst(process astFileProcess, fileSet *token.FileSet, args ...interface{}) (error, bool) {
+func (dstHelper *DstHelper) WithAst(process astFileProcess, args ...interface{}) (error, bool) {
 	restorer := decorator.NewRestorer()
 	astFile, err := restorer.RestoreFile(dstHelper.dstFile)
 	if err != nil {
 		return err, false
 	}
 	done := false
-	err, done = process(astFile, fileSet, args...)
+	err, done = process(astFile, dstHelper.fileSet, args...)
 
 	dstHelper.dstFile, err = decorator.DecorateFile(restorer.Fset, astFile)
 	return err, done
@@ -110,24 +116,25 @@ func (dstHelper *DstHelper) AddImport(pkg string) (done bool, err error) {
 		return false, fmt.Errorf("%s cannot be added as an import due to scope collision", pkg)
 	}
 
-	alreadyImported := false
-	err, done = dstHelper.WithAst(addImportProcessor, dstHelper.fileSet, pkg)
+	err, done = dstHelper.WithAst(addImportProcessor, pkg)
 	if err != nil {
 		return false, err
 	}
 
-	return !alreadyImported, err
+	return true, err
 }
 
 func (dstHelper *DstHelper) AddNamedImport(pkg string, name string) (done bool, err error) {
+	if importExists(dstHelper.dstFile, name) {
+		return false, fmt.Errorf("%s cannot be added as an import due to scope collision", pkg)
+	}
 
-	alreadyImported := false
-	err, done = dstHelper.WithAst(addNamedImportProcessor, dstHelper.fileSet, pkg)
+	err, done = dstHelper.WithAst(addNamedImportProcessor, pkg)
 	if err != nil {
 		return false, err
 	}
 
-	return !alreadyImported, err
+	return true, err
 }
 
 func (dstHelper *DstHelper) Print() {
@@ -145,9 +152,17 @@ func (dstHelper *DstHelper) Write() error {
 
 }
 
+func organizeImports(fileAst *ast.File, fileSet *token.FileSet, args ...interface{}) (error, bool) {
+	ast.SortImports(fileSet, fileAst)
+	return nil, true
+}
+
 func (dstHelper *DstHelper) Content() (string, error) {
 	var buf bytes.Buffer
 
+	// dstHelper.WithAst(organizeImports)
+
 	err := decorator.NewRestorer().Fprint(&buf, dstHelper.dstFile)
+
 	return buf.String(), err
 }

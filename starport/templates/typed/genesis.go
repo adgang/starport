@@ -31,7 +31,7 @@ func GenesisStateHighestFieldNumber(path string) (int, error) {
 	return m.HighestFieldNumber, nil
 }
 
-func AddTypeToGenesisState(dstHelper *astutils.DstHelper, key string, typeName string) {
+func AddKeysToDefaultGenesisState(dstHelper *astutils.DstHelper, key string, typeName string) {
 
 	applyFunc := func(cursor *dstutil.Cursor) bool {
 		switch x := cursor.Node().(type) {
