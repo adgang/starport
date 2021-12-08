@@ -6,7 +6,9 @@ import (
 	"go/ast"
 	"go/format"
 	"go/parser"
-	"go/printer"
+	printer "go/printer"
+
+	// "go/printer"
 	"go/token"
 	"os"
 
@@ -66,6 +68,42 @@ func (astHelper *AstHelper) AddNamedImport(pkg string, name string) (done bool) 
 	return !alreadyImported
 }
 
+func (astHelper *AstHelper) AddToState(key string, value string) {
+	fmt.Println(key, value)
+	applyFunc := func(cursor *astutil.Cursor) bool {
+		switch x := cursor.Node().(type) {
+
+		case *ast.FuncDecl:
+			list := x.Body.List
+			if x.Name.Name == "DefaultGenesis" {
+				ret := list[len(list)-1].(*ast.ReturnStmt)
+
+				exp := ret.Results[0].(*ast.UnaryExpr)
+
+				lit := exp.X.(*ast.CompositeLit)
+				if lit.Type.(*ast.Ident).Name == "GenesisState" {
+					// ast.Print(astHelper.fileSet, lit.Elts)
+
+					lit.Elts = append(lit.Elts, &ast.KeyValueExpr{Key: &ast.Ident{Name: key},
+						Value: &ast.CompositeLit{Type: &ast.ArrayType{Elt: &ast.Ident{Name: value}}}})
+
+					// ast.Print(astHelper.fileSet, lit.Elts)
+
+				}
+				// ast.Print(astHelper.fileSet, ret)
+				// for _, res := range ret.Results {
+				// 	fmt.Println(res)
+				// }
+				fmt.Println(x.Name)
+			}
+		default:
+		}
+		return true
+	}
+	astutil.Apply(astHelper.astFile, nil, applyFunc)
+	// astHelper.astFile.Decls
+}
+
 func (astHelper *AstHelper) Print() {
 	printer.Fprint(os.Stdout, astHelper.fileSet, astHelper.astFile)
 }
@@ -76,5 +114,15 @@ func (astHelper *AstHelper) Write() error {
 
 	format.Node(&buf, astHelper.fileSet, astHelper.astFile)
 
+	// f, err := os.Create(astHelper.file)
+	// fmt.Println("Couldnot open file")
+	// if err != nil {
+	// 	return err
+	// }
+	// ast.Fprint(os.Stdout, astHelper.fileSet, astHelper.astFile, nil)
+	// return ast.Fprint(f, astHelper.fileSet, astHelper.astFile, nil)
 	return os.WriteFile(astHelper.file, buf.Bytes(), 0777)
+	// fmt.Println("writing to file")
+	// return printer.Fprint(f, astHelper.fileSet, astHelper.astFile)
+
 }

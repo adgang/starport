@@ -15,7 +15,6 @@ const (
 	// Genesis
 	PlaceholderGenesisProtoImport   = "// this line is used by starport scaffolding # genesis/proto/import"
 	PlaceholderGenesisProtoState    = "// this line is used by starport scaffolding # genesis/proto/state"
-	PlaceholderGenesisTypesImport   = "// this line is used by starport scaffolding # genesis/types/import"
 	PlaceholderGenesisTypesDefault  = "// this line is used by starport scaffolding # genesis/types/default"
 	PlaceholderGenesisTypesValidate = "// this line is used by starport scaffolding # genesis/types/validate"
 	PlaceholderGenesisModuleInit    = "// this line is used by starport scaffolding # genesis/module/init"
