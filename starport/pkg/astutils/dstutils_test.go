@@ -1,6 +1,7 @@
 package astutils
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -78,8 +79,9 @@ func TestAddImport(t *testing.T) {
 		added  bool
 		err    error
 	}{
+
 		{
-			name:  "adding an import",
+			name:  "adding to empty imports",
 			input: `package blah`,
 			pkg:   "ast",
 			added: true,
@@ -94,6 +96,18 @@ import "ast"
 			name: "adding an import twice",
 			input: `package blah
 import "ast"`,
+			pkg:   "ast",
+			added: false,
+			output: `package blah
+
+import "ast"
+`,
+		},
+
+		{
+			name: "adding an import twice",
+			input: `package blah
+import ("ast")`,
 			pkg:   "ast",
 			added: false,
 			output: `package blah
@@ -175,6 +189,20 @@ import (
 )
 `,
 		},
+
+		{
+			name:  "adding an existing import name",
+			pkg:   "ast",
+			added: false,
+			input: `package blah
+import (
+	"pa/ast"
+	)			
+`,
+
+			output: ``,
+			err:    fmt.Errorf("asdad"),
+		},
 	}
 
 	for _, tc := range tests {
@@ -183,15 +211,18 @@ import (
 			helper, err := NewDstHelper("", tc.input)
 
 			added, err := helper.AddImport(tc.pkg)
-			require.Equal(t, true, added)
+			fmt.Println(err)
+			require.Equal(t, tc.added, added)
 
 			if tc.err == nil {
 				require.NoError(t, err)
+				var content string
+				content, err = helper.Content()
+				require.Equal(t, tc.output, content)
+
+			} else {
+				require.EqualError(t, err, "ast cannot be added as an import due to scope collision")
 			}
-			helper.Content()
-			var content string
-			content, err = helper.Content()
-			require.Equal(t, tc.output, content)
 
 		})
 	}

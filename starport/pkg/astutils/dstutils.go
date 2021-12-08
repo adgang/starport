@@ -86,20 +86,28 @@ func lastFragment(pkgPath string) string {
 	return pkgName
 }
 
-func importExists(dstFile *dst.File, pkg string) bool {
+func importExists(dstFile *dst.File, pkg string) (bool, bool) {
 	importName := lastFragment(pkg)
+	packageAlreadyImported := false
 
 	// get a list of independent line imports
 	imports := dstFile.Imports
 	if nil != imports {
 		for _, importSpec := range imports {
+			pkgPath := strings.ReplaceAll(importSpec.Path.Value, "\"", "")
+			fmt.Println(pkgPath, pkg)
+			if pkgPath == pkg {
+				packageAlreadyImported = true
+				return false, true
+			}
+
 			if importSpec.Name == nil {
-				usedName := lastFragment(importSpec.Path.Value)
+				usedName := lastFragment(pkgPath)
 				if usedName == importName {
-					return true
+					return true, false
 				}
 			} else if importSpec.Name.Name == importName {
-				return true
+				return true, false
 			} else {
 
 			}
@@ -107,32 +115,37 @@ func importExists(dstFile *dst.File, pkg string) bool {
 	}
 
 	// TODO: get all import lists and test for collisions
-	return false
+	return false, packageAlreadyImported
 }
 
 func (dstHelper *DstHelper) AddImport(pkg string) (done bool, err error) {
 
-	if importExists(dstHelper.dstFile, pkg) {
+	collision, packageAlreadyImported := importExists(dstHelper.dstFile, pkg)
+
+	fmt.Println(collision, packageAlreadyImported)
+	if packageAlreadyImported {
+		return false, nil
+	}
+	if collision {
 		return false, fmt.Errorf("%s cannot be added as an import due to scope collision", pkg)
 	}
 
 	err, done = dstHelper.WithAst(addImportProcessor, pkg)
-	if err != nil {
-		return false, err
-	}
 
 	return true, err
 }
 
 func (dstHelper *DstHelper) AddNamedImport(pkg string, name string) (done bool, err error) {
-	if importExists(dstHelper.dstFile, name) {
+	collision, packageAlreadyImported := importExists(dstHelper.dstFile, pkg)
+	if packageAlreadyImported {
+		return false, nil
+	}
+
+	if collision {
 		return false, fmt.Errorf("%s cannot be added as an import due to scope collision", pkg)
 	}
 
 	err, done = dstHelper.WithAst(addNamedImportProcessor, pkg)
-	if err != nil {
-		return false, err
-	}
 
 	return true, err
 }
