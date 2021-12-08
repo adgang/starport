@@ -89,45 +89,45 @@ func lastFragment(pkgPath string) string {
 func importExists(dstFile *dst.File, pkg string) (bool, bool) {
 	importName := lastFragment(pkg)
 	packageAlreadyImported := false
+	collision := false
 
 	// get a list of independent line imports
 	imports := dstFile.Imports
 	if nil != imports {
 		for _, importSpec := range imports {
 			pkgPath := strings.ReplaceAll(importSpec.Path.Value, "\"", "")
-			fmt.Println(pkgPath, pkg)
 			if pkgPath == pkg {
 				packageAlreadyImported = true
-				return false, true
-			}
-
-			if importSpec.Name == nil {
-				usedName := lastFragment(pkgPath)
-				if usedName == importName {
-					return true, false
-				}
-			} else if importSpec.Name.Name == importName {
-				return true, false
 			} else {
 
+				if importSpec.Name == nil {
+					usedName := lastFragment(pkgPath)
+					if usedName == importName {
+						collision = true
+						break
+					}
+				} else if importSpec.Name.Name == importName {
+					collision = true
+					break
+				}
 			}
 		}
 	}
 
 	// TODO: get all import lists and test for collisions
-	return false, packageAlreadyImported
+	return collision, packageAlreadyImported
 }
 
 func (dstHelper *DstHelper) AddImport(pkg string) (done bool, err error) {
 
 	collision, packageAlreadyImported := importExists(dstHelper.dstFile, pkg)
 
-	fmt.Println(collision, packageAlreadyImported)
-	if packageAlreadyImported {
-		return false, nil
-	}
 	if collision {
 		return false, fmt.Errorf("%s cannot be added as an import due to scope collision", pkg)
+	}
+
+	if packageAlreadyImported {
+		return false, nil
 	}
 
 	err, done = dstHelper.WithAst(addImportProcessor, pkg)

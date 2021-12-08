@@ -105,7 +105,7 @@ import "ast"
 		},
 
 		{
-			name: "adding an import twice",
+			name: "adding an import twice to an import group",
 			input: `package blah
 import ("ast")`,
 			pkg:   "ast",
