@@ -88,12 +88,6 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genn
 
 		typed.AddKeysToDefaultGenesisState(dstHelper, key, typeName)
 
-		content, err := dstHelper.Content()
-
-		if err != nil {
-			return err
-		}
-
 		templateTypesValidate := `// Check for duplicated ID in %[2]v
 %[2]vIdMap := make(map[uint64]bool)
 %[2]vCount := gs.Get%[3]vCount()
@@ -114,7 +108,14 @@ for _, elem := range gs.%[3]vList {
 			opts.TypeName.UpperCamel,
 		)
 
-		content = replacer.Replace(content, typed.PlaceholderGenesisTypesValidate, replacementTypesValidate)
+		typed.AddGenesisStateValidation(dstHelper, replacementTypesValidate)
+
+		// panic(1)
+		content, err := dstHelper.Content()
+
+		if err != nil {
+			return err
+		}
 
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)
