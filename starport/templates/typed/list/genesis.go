@@ -100,7 +100,7 @@ for _, elem := range gs.%[3]vList {
 	}
 	%[2]vIdMap[elem.Id] = true
 }
-%[1]v`
+`
 		replacementTypesValidate := fmt.Sprintf(
 			templateTypesValidate,
 			typed.PlaceholderGenesisTypesValidate,

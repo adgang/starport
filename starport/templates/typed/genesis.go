@@ -199,6 +199,8 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 				dst.Print(dstF)
 				statements := dstF.Decls[0].(*dst.FuncDecl).Body.List
 				returnStmt := body.List[lastLineIndex]
+				statements[0].Decorations().Before = dst.EmptyLine
+				statements[len(statements)-1].Decorations().After = dst.EmptyLine
 				body.List = append(body.List[0:lastLineIndex], statements...)
 				body.List = append(body.List, returnStmt)
 
