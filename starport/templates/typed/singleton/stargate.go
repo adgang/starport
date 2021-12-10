@@ -232,7 +232,7 @@ func genesisTypesModify(opts *typed.Options) genny.RunFn {
 			opts.TypeName.UpperCamel,
 		)
 
-		err = typed.AddSingletonToDefaultGenesisState(dstHelper, replacementTypesDefault)
+		err = typed.AddToDefaultGenesisState(dstHelper, replacementTypesDefault)
 		if err != nil {
 			return err
 		}
@@ -340,7 +340,8 @@ if genState.%[3]v != nil {
 		)
 		// content := replacer.Replace(f.String(), typed.PlaceholderGenesisModuleInit, replacementModuleInit)
 
-		err = typed.AddSingletonToInitGenesis(dstHelper, replacementModuleInit)
+		err = dstHelper.AppendToFunction("InitGenesis", replacementModuleInit)
+		// err = typed.AddSingletonToInitGenesis(dstHelper, replacementModuleInit)
 		if err != nil {
 			return err
 		}
@@ -359,7 +360,8 @@ if found {
 			opts.TypeName.UpperCamel,
 		)
 		// content = replacer.Replace(content, typed.PlaceholderGenesisModuleExport, replacementModuleExport)
-		err = typed.AddSingletonToModuleExport(dstHelper, replacementModuleExport)
+		// err = typed.AddSingletonToModuleExport(dstHelper, replacementModuleExport)
+		err = dstHelper.AppendToFunctionBeforeLastStatement("ExportGenesis", replacementModuleExport)
 		if err != nil {
 			return err
 		}

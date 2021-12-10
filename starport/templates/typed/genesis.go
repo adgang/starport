@@ -493,7 +493,7 @@ func AddSingletonToModuleExport(dstHelper *astutils.DstHelper, expressionList st
 
 }
 
-func AddSingletonToDefaultGenesisState(dstHelper *astutils.DstHelper, expressionList string) error {
+func AddToDefaultGenesisState(dstHelper *astutils.DstHelper, expressionList string) error {
 
 	vectorTemplate := `
 	package vector
