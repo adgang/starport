@@ -13,8 +13,9 @@ const (
 	PlaceholderHandlerMsgServer = "// this line is used by starport scaffolding # handler/msgServer"
 
 	// Genesis
-	PlaceholderGenesisProtoImport   = "// this line is used by starport scaffolding # genesis/proto/import"
-	PlaceholderGenesisProtoState    = "// this line is used by starport scaffolding # genesis/proto/state"
+	PlaceholderGenesisProtoImport = "// this line is used by starport scaffolding # genesis/proto/import"
+	PlaceholderGenesisProtoState  = "// this line is used by starport scaffolding # genesis/proto/state"
+
 	PlaceholderGenesisTypesDefault  = "// this line is used by starport scaffolding # genesis/types/default"
 	PlaceholderGenesisTypesValidate = "// this line is used by starport scaffolding # genesis/types/validate"
 	PlaceholderGenesisModuleInit    = "// this line is used by starport scaffolding # genesis/module/init"

@@ -364,3 +364,222 @@ func AddTestToGenesisStateValidate(dstHelper *astutils.DstHelper, expressionList
 	return fmt.Errorf("could not find place to update file")
 
 }
+
+func AddSingletonToInitGenesis(dstHelper *astutils.DstHelper, expressionList string) error {
+
+	vectorTemplate := `
+	package vector
+
+	func injector() {
+			%s
+		
+}`
+
+	injectorVector := fmt.Sprintf(vectorTemplate, expressionList)
+
+	vectorSelectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder("injector"),
+		},
+	}
+	vectorDstHelper, _ := astutils.NewDstHelper("", injectorVector)
+
+	vectorWalker := astutils.NewNodeWalker(vectorSelectors)
+
+	vectorNode, _ := vectorWalker.Slide(vectorDstHelper.DstFile())
+
+	vectorFunction := vectorNode.(*dst.FuncDecl)
+
+	functionName := "InitGenesis"
+	selectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder(functionName),
+		},
+		{
+			Map: func(nodeOrFile interface{}) dst.Node {
+
+				functionDecl := nodeOrFile.(*dst.FuncDecl)
+				statements := functionDecl.Body.List
+
+				for i, st := range statements {
+					if i == 2 {
+						dst.Print(st)
+						_ = vectorFunction
+						panic(1)
+					}
+				}
+
+				return functionDecl
+			},
+		},
+	}
+
+	walker := astutils.NewNodeWalker(selectors)
+
+	node, err := walker.Slide(dstHelper.DstFile())
+	if err != nil {
+		return fmt.Errorf("could not find function %s to update file", functionName)
+	}
+	if node != nil {
+
+		return nil
+	}
+
+	return fmt.Errorf("could not find place to update file")
+
+}
+
+func AddSingletonToModuleExport(dstHelper *astutils.DstHelper, expressionList string) error {
+
+	vectorTemplate := `
+	package vector
+
+	func injector() {
+			%s
+		
+}`
+
+	injectorVector := fmt.Sprintf(vectorTemplate, expressionList)
+
+	vectorSelectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder("injector"),
+		},
+	}
+	vectorDstHelper, _ := astutils.NewDstHelper("", injectorVector)
+
+	vectorWalker := astutils.NewNodeWalker(vectorSelectors)
+
+	vectorNode, _ := vectorWalker.Slide(vectorDstHelper.DstFile())
+
+	vectorFunction := vectorNode.(*dst.FuncDecl)
+
+	functionName := "InitGenesis"
+	selectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder(functionName),
+		},
+		{
+			Map: func(nodeOrFile interface{}) dst.Node {
+
+				functionDecl := nodeOrFile.(*dst.FuncDecl)
+				statements := functionDecl.Body.List
+
+				for i, st := range statements {
+					if i == 2 {
+						dst.Print(st)
+						_ = vectorFunction
+						panic(1)
+					}
+				}
+
+				return functionDecl
+			},
+		},
+	}
+
+	walker := astutils.NewNodeWalker(selectors)
+
+	node, err := walker.Slide(dstHelper.DstFile())
+	if err != nil {
+		return fmt.Errorf("could not find function %s to update file", functionName)
+	}
+	if node != nil {
+
+		return nil
+	}
+
+	return fmt.Errorf("could not find place to update file")
+
+}
+
+func AddSingletonToDefaultGenesisState(dstHelper *astutils.DstHelper, expressionList string) error {
+
+	vectorTemplate := `
+	package vector
+
+	func injector() {
+		list := SomeType {
+			%s
+		}
+		
+}`
+
+	injectorVector := fmt.Sprintf(vectorTemplate, expressionList)
+
+	vectorSelectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder("injector"),
+		},
+		{
+			Map: func(nodeOrFile interface{}) dst.Node {
+				functionDecl := nodeOrFile.(*dst.FuncDecl)
+				statements := functionDecl.Body.List
+
+				rhs := statements[0].(*dst.AssignStmt).Rhs[0].(*dst.CompositeLit)
+				return rhs
+			},
+		},
+	}
+	vectorDstHelper, _ := astutils.NewDstHelper("", injectorVector)
+
+	vectorWalker := astutils.NewNodeWalker(vectorSelectors)
+
+	vectorNode, _ := vectorWalker.Slide(vectorDstHelper.DstFile())
+
+	functionName := "DefaultGenesis"
+	anchorToken := "Params"
+	selectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder(functionName),
+		},
+		{
+			Map: func(nodeOrFile interface{}) dst.Node {
+				functionDecl := nodeOrFile.(*dst.FuncDecl)
+				statements := functionDecl.Body.List
+
+				retStmt := statements[len(statements)-1].(*dst.ReturnStmt)
+				return retStmt
+			},
+		},
+		{
+			Map: func(nodeOrFile interface{}) dst.Node {
+
+				retStmt := nodeOrFile.(*dst.ReturnStmt)
+
+				compositeLit := retStmt.Results[0].(*dst.UnaryExpr).X.(*dst.CompositeLit)
+				var tokenIndex int
+				for i, elt := range compositeLit.Elts {
+					if exp := elt.(*dst.KeyValueExpr); exp != nil {
+						if anchorToken == exp.Key.(*dst.Ident).Name {
+							tokenIndex = i
+						}
+					}
+				}
+
+				vectorKeyValPairs := (vectorNode).(*dst.CompositeLit).Elts
+
+				trailingSlice := dst.Clone(compositeLit).(*dst.CompositeLit).Elts[tokenIndex:]
+				compositeLit.Elts = append(compositeLit.Elts[0:tokenIndex], vectorKeyValPairs...)
+
+				compositeLit.Elts = append(compositeLit.Elts, trailingSlice...)
+
+				return retStmt
+			},
+		},
+	}
+
+	walker := astutils.NewNodeWalker(selectors)
+
+	node, err := walker.Slide(dstHelper.DstFile())
+	if err != nil {
+		return fmt.Errorf("could not find function %s to update file", functionName)
+	}
+	if node != nil {
+
+		return nil
+	}
+
+	return fmt.Errorf("could not find place to update file")
+
+}

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gobuffalo/genny"
+	"github.com/tendermint/starport/starport/pkg/astutils"
 	"github.com/tendermint/starport/starport/pkg/placeholder"
 	"github.com/tendermint/starport/starport/pkg/xgenny"
 	"github.com/tendermint/starport/starport/templates/module"
@@ -216,12 +217,13 @@ func genesisProtoModify(replacer placeholder.Replacer, opts *typed.Options) genn
 func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis.go")
-		f, err := r.Disk.Find(path)
+
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
+
 		if err != nil {
 			return err
 		}
-
-		content := f.String()
 
 		templateTypesDefault := `%[2]v: nil,
 %[1]v`
@@ -230,7 +232,16 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genn
 			typed.PlaceholderGenesisTypesDefault,
 			opts.TypeName.UpperCamel,
 		)
-		content = replacer.Replace(content, typed.PlaceholderGenesisTypesDefault, replacementTypesDefault)
+
+		err = typed.AddSingletonToDefaultGenesisState(dstHelper, replacementTypesDefault)
+		if err != nil {
+			return err
+		}
+
+		content, err := dstHelper.Content()
+		if err != nil {
+			return err
+		}
 
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)
@@ -309,7 +320,10 @@ func genesisTypesTestsModify(replacer placeholder.Replacer, opts *typed.Options)
 func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "genesis.go")
-		f, err := r.Disk.Find(path)
+
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
+
 		if err != nil {
 			return err
 		}
@@ -325,7 +339,12 @@ if genState.%[3]v != nil {
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
-		content := replacer.Replace(f.String(), typed.PlaceholderGenesisModuleInit, replacementModuleInit)
+		// content := replacer.Replace(f.String(), typed.PlaceholderGenesisModuleInit, replacementModuleInit)
+
+		err = typed.AddSingletonToInitGenesis(dstHelper, replacementModuleInit)
+		if err != nil {
+			return err
+		}
 
 		templateModuleExport := `// Get all %[2]v
 %[2]v, found := k.Get%[3]v(ctx)
@@ -333,13 +352,23 @@ if found {
 	genesis.%[3]v = &%[2]v
 }
 %[1]v`
+
 		replacementModuleExport := fmt.Sprintf(
 			templateModuleExport,
 			typed.PlaceholderGenesisModuleExport,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
-		content = replacer.Replace(content, typed.PlaceholderGenesisModuleExport, replacementModuleExport)
+		// content = replacer.Replace(content, typed.PlaceholderGenesisModuleExport, replacementModuleExport)
+		err = typed.AddSingletonToModuleExport(dstHelper, replacementModuleExport)
+		if err != nil {
+			return err
+		}
+
+		content, err := dstHelper.Content()
+		if err != nil {
+			return err
+		}
 
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)
