@@ -211,3 +211,156 @@ func AddToTestGenesisState(dstHelper *astutils.DstHelper, expressionList string)
 	return fmt.Errorf("could not find place to update file")
 
 }
+
+func AddToTypesTestGenesisState(dstHelper *astutils.DstHelper, expressionList string) error {
+
+	vectorTemplate := `
+	package vector
+
+	func injector() {
+		genesisState := types.GenesisState{
+			%s
+		}
+}`
+
+	injectorVector := fmt.Sprintf(vectorTemplate, expressionList)
+
+	vectorSelectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder("injector"),
+		},
+	}
+	vectorDstHelper, _ := astutils.NewDstHelper("", injectorVector)
+
+	vectorWalker := astutils.NewNodeWalker(vectorSelectors)
+
+	vectorNode, _ := vectorWalker.Slide(vectorDstHelper.DstFile())
+
+	vectorFunction := vectorNode.(*dst.FuncDecl)
+
+	functionName := "TestGenesisState_Validate"
+	selectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder(functionName),
+		},
+		{
+			Map: func(nodeOrFile interface{}) dst.Node {
+
+				functionDecl := nodeOrFile.(*dst.FuncDecl)
+				return functionDecl.Body.List[0]
+			},
+		},
+
+		{
+			Map: func(nodeOrFile interface{}) dst.Node {
+				assignStmt := nodeOrFile.(*dst.AssignStmt)
+				compositeLit := assignStmt.Rhs[0].(*dst.CompositeLit)
+				vectorAssignStmt := vectorFunction.Body.List[0].(*dst.AssignStmt)
+				vectorCompositeLit := vectorAssignStmt.Rhs[0].(*dst.CompositeLit)
+
+				vectorElts := vectorCompositeLit.Elts
+				lastElt := vectorElts[len(vectorElts)-1]
+				vectorElts[0].Decorations().Before = dst.EmptyLine
+				lastElt.Decorations().After = dst.NewLine
+				compositeLit.Elts = append(compositeLit.Elts, vectorCompositeLit.Elts...)
+
+				assignStmt.Rhs[0] = dst.Clone(compositeLit).(dst.Expr)
+
+				return compositeLit
+
+			},
+		},
+	}
+
+	walker := astutils.NewNodeWalker(selectors)
+
+	node, err := walker.Slide(dstHelper.DstFile())
+	if err != nil {
+		return fmt.Errorf("could not find function %s to update file", functionName)
+	}
+	if node != nil {
+
+		return nil
+	}
+
+	return fmt.Errorf("could not find place to update file")
+
+}
+
+func AddTestToGenesisStateValidate(dstHelper *astutils.DstHelper, expressionList string) error {
+
+	vectorTemplate := `
+	package vector
+
+	func injector() {
+		genesisState := []struct{}{
+			%s
+		}
+}`
+
+	injectorVector := fmt.Sprintf(vectorTemplate, expressionList)
+
+	vectorSelectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder("injector"),
+		},
+	}
+	vectorDstHelper, _ := astutils.NewDstHelper("", injectorVector)
+
+	vectorWalker := astutils.NewNodeWalker(vectorSelectors)
+
+	vectorNode, _ := vectorWalker.Slide(vectorDstHelper.DstFile())
+
+	vectorFunction := vectorNode.(*dst.FuncDecl)
+
+	functionName := "TestGenesisState_Validate"
+	selectors := []astutils.NodeSelector{
+		{
+			Map: astutils.FuctionFinder(functionName),
+		},
+		{
+			Map: func(nodeOrFile interface{}) dst.Node {
+
+				functionDecl := nodeOrFile.(*dst.FuncDecl)
+				return functionDecl.Body.List[1]
+			},
+		},
+
+		{
+			Map: func(nodeOrFile interface{}) dst.Node {
+				assignStmt := nodeOrFile.(*dst.AssignStmt)
+				compositeLit := assignStmt.Rhs[0].(*dst.CompositeLit)
+				vectorAssignStmt := vectorFunction.Body.List[0].(*dst.AssignStmt)
+				vectorCompositeLit := vectorAssignStmt.Rhs[0].(*dst.CompositeLit)
+
+				vectorElts := vectorCompositeLit.Elts
+				if l := len(vectorElts) - 1; l >= 0 {
+					lastElt := vectorElts[l]
+					vectorElts[0].Decorations().Before = dst.EmptyLine
+					lastElt.Decorations().After = dst.NewLine
+
+				}
+				compositeLit.Elts = append(compositeLit.Elts, vectorCompositeLit.Elts...)
+
+				assignStmt.Rhs[0] = dst.Clone(compositeLit).(dst.Expr)
+
+				return compositeLit
+
+			},
+		},
+	}
+
+	walker := astutils.NewNodeWalker(selectors)
+
+	node, err := walker.Slide(dstHelper.DstFile())
+	if err != nil {
+		return fmt.Errorf("could not find function %s to update file", functionName)
+	}
+	if node != nil {
+
+		return nil
+	}
+
+	return fmt.Errorf("could not find place to update file")
+
+}

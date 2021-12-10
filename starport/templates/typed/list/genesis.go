@@ -226,7 +226,10 @@ require.Equal(t, genesisState.%[1]vCount, got.%[1]vCount)`
 func genesisTypesTestsModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis_test.go")
-		f, err := r.Disk.Find(path)
+
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
+
 		if err != nil {
 			return err
 		}
@@ -246,8 +249,9 @@ func genesisTypesTestsModify(replacer placeholder.Replacer, opts *typed.Options)
 			module.PlaceholderTypesGenesisValidField,
 			opts.TypeName.UpperCamel,
 		)
-		content := replacer.Replace(f.String(), module.PlaceholderTypesGenesisValidField, replacementValid)
+		// content := replacer.Replace(f.String(), module.PlaceholderTypesGenesisValidField, replacementValid)
 
+		typed.AddToTypesTestGenesisState(dstHelper, replacementValid)
 		templateTests := `{
 	desc:     "duplicated %[2]v",
 	genState: &types.GenesisState{
@@ -281,7 +285,13 @@ func genesisTypesTestsModify(replacer placeholder.Replacer, opts *typed.Options)
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
-		content = replacer.Replace(content, module.PlaceholderTypesGenesisTestcase, replacementTests)
+		// content = replacer.Replace(content, module.PlaceholderTypesGenesisTestcase, replacementTests)
+		typed.AddTestToGenesisStateValidate(dstHelper, replacementTests)
+
+		content, err := dstHelper.Content()
+		if err != nil {
+			return err
+		}
 
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)
