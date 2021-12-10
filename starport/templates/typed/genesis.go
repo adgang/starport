@@ -161,8 +161,6 @@ func AddToTestGenesisState(dstHelper *astutils.DstHelper, expressionList string)
 
 	vectorNode, _ := vectorWalker.Slide(vectorDstHelper.DstFile())
 
-	fmt.Println(vectorNode)
-
 	vectorFunction := vectorNode.(*dst.FuncDecl)
 
 	functionName := "TestGenesis"
@@ -172,32 +170,26 @@ func AddToTestGenesisState(dstHelper *astutils.DstHelper, expressionList string)
 		},
 		{
 			Map: func(nodeOrFile interface{}) dst.Node {
-				// dst.Print(nodeOrFile)
 
 				functionDecl := nodeOrFile.(*dst.FuncDecl)
-				dst.Print(functionDecl.Body.List[0:2])
 				return functionDecl.Body.List[0]
 			},
 		},
 
 		{
 			Map: func(nodeOrFile interface{}) dst.Node {
-				dst.Print(nodeOrFile)
 				assignStmt := nodeOrFile.(*dst.AssignStmt)
-				dst.Print(dst.Print(assignStmt.Rhs))
-				// panic(1)
 				compositeLit := assignStmt.Rhs[0].(*dst.CompositeLit)
 				vectorAssignStmt := vectorFunction.Body.List[0].(*dst.AssignStmt)
 				vectorCompositeLit := vectorAssignStmt.Rhs[0].(*dst.CompositeLit)
 
-				// fmt.Println("-----")
-				// dst.Print(compositeLit.Elts)
-
+				vectorElts := vectorCompositeLit.Elts
+				lastElt := vectorElts[len(vectorElts)-1]
+				vectorElts[0].Decorations().Before = dst.EmptyLine
+				lastElt.Decorations().After = dst.NewLine
 				compositeLit.Elts = append(compositeLit.Elts, vectorCompositeLit.Elts...)
-				// fmt.Println("-----")
-				assignStmt.Rhs[0] = dst.Clone(compositeLit).(dst.Expr)
 
-				dst.Print(dst.Print(assignStmt))
+				assignStmt.Rhs[0] = dst.Clone(compositeLit).(dst.Expr)
 
 				return compositeLit
 

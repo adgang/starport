@@ -16,7 +16,7 @@ func genesisModify(replacer placeholder.Replacer, opts *typed.Options, g *genny.
 	g.RunFn(genesisProtoModify(replacer, opts))
 	g.RunFn(genesisTypesModify(opts))
 	g.RunFn(genesisModuleModify(opts))
-	g.RunFn(genesisTestsModify(replacer, opts))
+	g.RunFn(genesisTestsModify(opts))
 	g.RunFn(genesisTypesTestsModify(replacer, opts))
 }
 
@@ -171,7 +171,7 @@ genesis.%[1]vCount = k.Get%[1]vCount(ctx)`
 	}
 }
 
-func genesisTestsModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
+func genesisTestsModify(opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "genesis_test.go")
 
@@ -182,7 +182,7 @@ func genesisTestsModify(replacer placeholder.Replacer, opts *typed.Options) genn
 			return err
 		}
 
-		templateState := `%[2]vList: []types.%[2]v{
+		templateState := `%[1]vList: []types.%[1]v{
 		{
 			Id: 0,
 		},
@@ -190,29 +190,23 @@ func genesisTestsModify(replacer placeholder.Replacer, opts *typed.Options) genn
 			Id: 1,
 		},
 	},
-	%[2]vCount: 2,
-	%[1]v`
+	%[1]vCount: 2,`
 		replacementValid := fmt.Sprintf(
 			templateState,
-			module.PlaceholderGenesisTestState,
 			opts.TypeName.UpperCamel,
 		)
-		// content := replacer.Replace(f.String(), module.PlaceholderGenesisTestState, replacementValid)
 		err = typed.AddToTestGenesisState(dstHelper, replacementValid)
 		_ = replacementValid
 		if err != nil {
 			return err
 		}
 
-		templateAssert := `require.ElementsMatch(t, genesisState.%[2]vList, got.%[2]vList)
-require.Equal(t, genesisState.%[2]vCount, got.%[2]vCount)
-%[1]v`
+		templateAssert := `require.ElementsMatch(t, genesisState.%[1]vList, got.%[1]vList)
+require.Equal(t, genesisState.%[1]vCount, got.%[1]vCount)`
 		replacementTests := fmt.Sprintf(
 			templateAssert,
-			module.PlaceholderGenesisTestAssert,
 			opts.TypeName.UpperCamel,
 		)
-		// content = replacer.Replace(content, module.PlaceholderGenesisTestAssert, replacementTests)
 
 		err = typed.AddToTestGenesisRequire(dstHelper, replacementTests)
 		if err != nil {
