@@ -74,7 +74,6 @@ if !k.IsBound(ctx, genState.PortId) {
 		panic("could not claim port capability: " + err.Error())
 	}
 }`
-		// content := replacer.Replace(f.String(), typed.PlaceholderGenesisModuleInit, replacementInit)
 		err = dstHelper.AppendToFunction("InitGenesis", replacementInit)
 		if err != nil {
 			return err
@@ -83,8 +82,6 @@ if !k.IsBound(ctx, genState.PortId) {
 		// Genesis export
 		replacementExport := `genesis.PortId = k.GetPort(ctx)
 `
-		// content = replacer.Replace(content, typed.PlaceholderGenesisModuleExport, replacementExport)
-
 		err = dstHelper.AppendToFunctionBeforeLastStatement("ExportGenesis", replacementExport)
 		if err != nil {
 			return err
