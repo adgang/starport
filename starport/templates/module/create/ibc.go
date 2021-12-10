@@ -25,8 +25,8 @@ func NewIBC(replacer placeholder.Replacer, opts *CreateOptions) (*genny.Generato
 		template = xgenny.NewEmbedWalker(fsIBC, "ibc/", opts.AppPath)
 	)
 
-	g.RunFn(genesisModify(replacer, opts))
-	g.RunFn(genesisTypesModify(replacer, opts))
+	g.RunFn(genesisModify(opts))
+	g.RunFn(genesisTypesModify(opts))
 	g.RunFn(genesisProtoModify(replacer, opts))
 	g.RunFn(keysModify(replacer, opts))
 
@@ -50,16 +50,19 @@ func NewIBC(replacer placeholder.Replacer, opts *CreateOptions) (*genny.Generato
 	return g, nil
 }
 
-func genesisModify(replacer placeholder.Replacer, opts *CreateOptions) genny.RunFn {
+func genesisModify(opts *CreateOptions) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "genesis.go")
-		f, err := r.Disk.Find(path)
+
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
+
 		if err != nil {
 			return err
 		}
 
 		// Genesis init
-		templateInit := `%s
+		replacementInit := `
 k.SetPort(ctx, genState.PortId)
 // Only try to bind to port if it is not already bound, since we may already own
 // port capability from capability InitGenesis
@@ -71,21 +74,33 @@ if !k.IsBound(ctx, genState.PortId) {
 		panic("could not claim port capability: " + err.Error())
 	}
 }`
-		replacementInit := fmt.Sprintf(templateInit, typed.PlaceholderGenesisModuleInit)
-		content := replacer.Replace(f.String(), typed.PlaceholderGenesisModuleInit, replacementInit)
+		// content := replacer.Replace(f.String(), typed.PlaceholderGenesisModuleInit, replacementInit)
+		err = dstHelper.AppendToFunction("InitGenesis", replacementInit)
+		if err != nil {
+			return err
+		}
 
 		// Genesis export
-		templateExport := `genesis.PortId = k.GetPort(ctx)
-%s`
-		replacementExport := fmt.Sprintf(templateExport, typed.PlaceholderGenesisModuleExport)
-		content = replacer.Replace(content, typed.PlaceholderGenesisModuleExport, replacementExport)
+		replacementExport := `genesis.PortId = k.GetPort(ctx)
+`
+		// content = replacer.Replace(content, typed.PlaceholderGenesisModuleExport, replacementExport)
+
+		err = dstHelper.AppendToFunctionBeforeLastStatement("ExportGenesis", replacementExport)
+		if err != nil {
+			return err
+		}
+
+		content, err := dstHelper.Content()
+		if err != nil {
+			return err
+		}
 
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)
 	}
 }
 
-func genesisTypesModify(replacer placeholder.Replacer, opts *CreateOptions) genny.RunFn {
+func genesisTypesModify(opts *CreateOptions) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis.go")
 
@@ -110,7 +125,6 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *CreateOptions) genn
 		templateDefault := `PortId: PortID,
 %s`
 		replacementDefault := fmt.Sprintf(templateDefault, typed.PlaceholderGenesisTypesDefault)
-		// content = replacer.Replace(content, typed.PlaceholderGenesisTypesDefault, replacementDefault)
 
 		err = typed.AddToDefaultGenesisState(dstHelper, replacementDefault)
 		if err != nil {
@@ -124,7 +138,6 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *CreateOptions) genn
 }
 %s`
 		replacementValidate := fmt.Sprintf(templateValidate, typed.PlaceholderGenesisTypesValidate)
-		// content = replacer.Replace(content, typed.PlaceholderGenesisTypesValidate, replacementValidate)
 		err = typed.AddGenesisStateValidation(dstHelper, replacementValidate)
 
 		if err != nil {
