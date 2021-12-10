@@ -78,22 +78,6 @@ type NodeWalker struct {
 }
 
 func (walker NodeWalker) slide(node dst.Node) (dst.Node, error) {
-	// TODO: remove the defer block
-	defer func() error {
-		err := recover()
-		fmt.Println(err)
-		switch err.(type) {
-		case error:
-			fmt.Println("-----")
-			fmt.Println(err)
-			fmt.Println("xxxxx")
-
-			return err.(error)
-		default:
-			return nil
-		}
-	}()
-
 	curNode := node
 	for _, selector := range walker.selectors {
 
@@ -106,7 +90,6 @@ func (walker NodeWalker) slide(node dst.Node) (dst.Node, error) {
 }
 
 func (selector *NodeSelector) Process(node dst.Node) dst.Node {
-	fmt.Println("processing...")
 
 	if selector.Filter == nil || selector.Filter(node) {
 		return selector.Map(node)
@@ -151,7 +134,6 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 		{
 			Filter: functionMatcher("Validate"),
 			Map: func(node dst.Node) dst.Node {
-				fmt.Println("mapping...")
 				body := (nodeToFunction(node)).Body
 				lines := body.List
 				lastLineIndex := len(lines) - 1
