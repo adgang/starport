@@ -180,3 +180,42 @@ func (dstHelper *DstHelper) Content() (string, error) {
 
 	return buf.String(), err
 }
+
+type NodeFilter func(node dst.Node) bool
+type NodeMap func(node dst.Node) dst.Node
+
+type NodeSelector struct {
+	Name   string
+	Filter NodeFilter
+	Map    NodeMap
+}
+
+func (selector *NodeSelector) Process(node dst.Node) dst.Node {
+
+	if selector.Filter == nil || selector.Filter(node) {
+		return selector.Map(node)
+	}
+
+	return nil
+
+}
+
+type NodeWalker struct {
+	selectors []NodeSelector
+}
+
+func NewNodeWalker(selectors []NodeSelector) NodeWalker {
+	return NodeWalker{selectors: selectors}
+}
+
+func (walker NodeWalker) Slide(node dst.Node) (dst.Node, error) {
+	curNode := node
+	for _, selector := range walker.selectors {
+
+		if curNode == nil {
+			return curNode, fmt.Errorf("could not find %s while walking the dst node", selector.Name)
+		}
+		curNode = selector.Process(curNode)
+	}
+	return curNode, nil
+}

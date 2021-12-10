@@ -64,56 +64,7 @@ func AddKeysToDefaultGenesisState(dstHelper *astutils.DstHelper, key string, typ
 
 }
 
-type NodeFilter func(node dst.Node) bool
-type NodeMap func(node dst.Node) dst.Node
-
-type NodeSelector struct {
-	Name   string
-	Filter NodeFilter
-	Map    NodeMap
-}
-
-type NodeWalker struct {
-	selectors []NodeSelector
-}
-
-func (walker NodeWalker) slide(node dst.Node) (dst.Node, error) {
-	curNode := node
-	for _, selector := range walker.selectors {
-
-		if curNode == nil {
-			return curNode, fmt.Errorf("could not find %s while walking the dst node", selector.Name)
-		}
-		curNode = selector.Process(curNode)
-	}
-	return curNode, nil
-}
-
-func (selector *NodeSelector) Process(node dst.Node) dst.Node {
-
-	if selector.Filter == nil || selector.Filter(node) {
-		return selector.Map(node)
-	}
-
-	return nil
-
-}
-
-type ValidationVisitor struct {
-	selectors []NodeSelector
-}
-
-type GenesisValidationVisitor struct {
-	ValidationVisitor
-}
-
-func NewGenesisValidationVisitor(selectors []NodeSelector) *GenesisValidationVisitor {
-	visitor := &GenesisValidationVisitor{}
-	visitor.selectors = selectors
-	return visitor
-}
-
-func functionMatcher(name string) NodeFilter {
+func functionMatcher(name string) astutils.NodeFilter {
 	return func(node dst.Node) bool {
 		switch node.(type) {
 		case *dst.FuncDecl:
@@ -130,7 +81,7 @@ func nodeToFunction(node dst.Node) *dst.FuncDecl {
 
 func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList string) error {
 
-	selectors := []NodeSelector{
+	selectors := []astutils.NodeSelector{
 		{
 			Filter: functionMatcher("Validate"),
 			Map: func(node dst.Node) dst.Node {
@@ -192,9 +143,9 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 	}
 
 	for _, decl := range dstHelper.DstFile().Decls {
-		walker := NodeWalker{selectors: selectors}
+		walker := astutils.NewNodeWalker(selectors)
 
-		node, err := walker.slide(decl)
+		node, err := walker.Slide(decl)
 		if err != nil {
 			return fmt.Errorf("could not find function to update file")
 		}
