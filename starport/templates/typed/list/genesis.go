@@ -123,7 +123,15 @@ for _, elem := range gs.%[2]vList {
 func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "genesis.go")
-		f, err := r.Disk.Find(path)
+
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
+
+		if err != nil {
+			return err
+		}
+
+		_, err = dstHelper.AddImport("fmt")
 		if err != nil {
 			return err
 		}
@@ -142,7 +150,11 @@ k.Set%[3]vCount(ctx, genState.%[3]vCount)
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
-		content := replacer.Replace(f.String(), typed.PlaceholderGenesisModuleInit, replacementModuleInit)
+
+		err = typed.AddToModuleInitGenesis(dstHelper, replacementModuleInit)
+		if err != nil {
+			return err
+		}
 
 		templateModuleExport := `genesis.%[2]vList = k.GetAll%[2]v(ctx)
 genesis.%[2]vCount = k.Get%[2]vCount(ctx)
@@ -152,7 +164,16 @@ genesis.%[2]vCount = k.Get%[2]vCount(ctx)
 			typed.PlaceholderGenesisModuleExport,
 			opts.TypeName.UpperCamel,
 		)
-		content = replacer.Replace(content, typed.PlaceholderGenesisModuleExport, replacementModuleExport)
+
+		err = typed.AddToModuleExportGenesis(dstHelper, replacementModuleExport)
+		if err != nil {
+			return err
+		}
+
+		content, err := dstHelper.Content()
+		if err != nil {
+			return err
+		}
 
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)

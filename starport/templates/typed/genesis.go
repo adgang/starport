@@ -118,3 +118,15 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 
 	return fmt.Errorf("could not find place to update file")
 }
+
+func AddToModuleInitGenesis(dstHelper *astutils.DstHelper, expressionList string) error {
+
+	return dstHelper.AppendToFunction("InitGenesis", expressionList)
+
+}
+
+func AddToModuleExportGenesis(dstHelper *astutils.DstHelper, expressionList string) error {
+
+	return dstHelper.AppendToFunctionBeforeLastStatement("ExportGenesis", expressionList)
+
+}

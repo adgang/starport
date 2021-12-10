@@ -263,3 +263,99 @@ func FuctionFinder(name string) NodeFileMapper {
 		}
 	}
 }
+
+func (dstHelper *DstHelper) AppendToFunctionBeforeLastStatement(name string, expressionList string) error {
+	selectors := []NodeSelector{
+		{
+			Map: FuctionFinder(name),
+		},
+		{
+			Filter: FunctionMatcher(name),
+			Map: func(node interface{}) dst.Node {
+				body := (node.(*dst.FuncDecl)).Body
+				lines := body.List
+				lastLineIndex := len(lines) - 1
+
+				templateText := fmt.Sprintf(`package unknown
+				func placeholder() {
+					%s
+				}
+				`, expressionList)
+
+				vectorDst, err := decorator.Parse(templateText)
+
+				if err != nil {
+					return nil
+				}
+				statements := vectorDst.Decls[0].(*dst.FuncDecl).Body.List
+				returnStmt := body.List[lastLineIndex]
+				statements[0].Decorations().Before = dst.EmptyLine
+				statements[len(statements)-1].Decorations().After = dst.EmptyLine
+				body.List = append(body.List[0:lastLineIndex], statements...)
+				body.List = append(body.List, returnStmt)
+
+				return (node.(*dst.FuncDecl))
+
+			},
+		},
+	}
+
+	walker := NewNodeWalker(selectors)
+
+	node, err := walker.Slide(dstHelper.DstFile())
+	if err != nil {
+		return fmt.Errorf("could not find function %s to update file", name)
+	}
+	if node != nil {
+
+		return nil
+	}
+
+	return fmt.Errorf("could not find place to update file")
+}
+
+func (dstHelper *DstHelper) AppendToFunction(name string, expressionList string) error {
+	selectors := []NodeSelector{
+		{
+			Map: FuctionFinder(name),
+		},
+		{
+			Filter: FunctionMatcher(name),
+			Map: func(node interface{}) dst.Node {
+				body := (node.(*dst.FuncDecl)).Body
+
+				templateText := fmt.Sprintf(`package unknown
+				func placeholder() {
+					%s
+				}
+				`, expressionList)
+
+				vectorDst, err := decorator.Parse(templateText)
+
+				if err != nil {
+					return nil
+				}
+				statements := vectorDst.Decls[0].(*dst.FuncDecl).Body.List
+				statements[0].Decorations().Before = dst.EmptyLine
+				statements[len(statements)-1].Decorations().After = dst.EmptyLine
+				body.List = append(body.List, statements...)
+
+				return (node.(*dst.FuncDecl))
+
+			},
+		},
+	}
+
+	walker := NewNodeWalker(selectors)
+
+	node, err := walker.Slide(dstHelper.DstFile())
+	if err != nil {
+		return fmt.Errorf("could not find function %s to update file", name)
+	}
+	if node != nil {
+
+		return nil
+	}
+
+	return fmt.Errorf("could not find place to update file")
+}
