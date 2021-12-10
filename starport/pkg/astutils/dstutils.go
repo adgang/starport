@@ -182,18 +182,20 @@ func (dstHelper *DstHelper) Content() (string, error) {
 }
 
 type NodeFilter func(node dst.Node) bool
-type NodeMap func(node dst.Node) dst.Node
+type NodeFileMapper func(nodeOrFile interface{}) dst.Node
 
 type NodeSelector struct {
 	Name   string
 	Filter NodeFilter
-	Map    NodeMap
+	Map    NodeFileMapper
 }
 
 func (selector *NodeSelector) Process(node dst.Node) dst.Node {
+	fmt.Println("processing")
 
 	if selector.Filter == nil || selector.Filter(node) {
 		newNode := selector.Map(node)
+		fmt.Println(newNode)
 
 		return newNode
 	}
@@ -224,11 +226,41 @@ func (walker NodeWalker) Slide(node dst.Node) (dst.Node, error) {
 
 func FunctionMatcher(name string) NodeFilter {
 	return func(node dst.Node) bool {
-		switch node.(type) {
+		switch (node).(type) {
 		case *dst.FuncDecl:
 			return node.(*dst.FuncDecl).Name.Name == name
 		default:
 			return false
+		}
+	}
+}
+
+func FuctionFinder(name string) NodeFileMapper {
+	return func(nodeOrFile interface{}) dst.Node {
+		fmt.Print(nodeOrFile)
+
+		switch nodeOrFile.(type) {
+		case *dst.File:
+			fmt.Print(nodeOrFile)
+			file := nodeOrFile.(*dst.File)
+			for _, decl := range file.Decls {
+				switch decl.(type) {
+				case dst.Decl:
+					declNode := decl.(dst.Decl)
+					switch decl.(type) {
+					case *dst.FuncDecl:
+						functionDecl := decl.(*dst.FuncDecl)
+						if functionDecl != nil && functionDecl.Name != nil && functionDecl.Name.Name == name {
+							return declNode
+						}
+
+					}
+
+				}
+			}
+			return nil
+		default:
+			return nil
 		}
 	}
 }

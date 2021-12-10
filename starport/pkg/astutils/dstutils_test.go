@@ -337,22 +337,23 @@ func foo() {
 			// assignSmt := &dst.AssignStmt{Tok: token.ASSIGN, Lhs: []dst.Expr{&dst.Ident{Name: "list21IdMap"}}, Rhs: []dst.Expr{&dst.BasicLit{Kind: token.STRING, Value: "\"abc\""}}}
 			selectors := []NodeSelector{
 				{
+					Map: FuctionFinder("foo"),
+				},
+				{
 					Filter: FunctionMatcher("foo"),
-					Map: func(node dst.Node) dst.Node {
+					Map: func(node interface{}) dst.Node {
 						fmt.Println("mapping...")
-						body := node.(*dst.FuncDecl).Body
+						funDecl := (node).(*dst.FuncDecl)
+						body := funDecl.Body
 
 						body.List = append(body.List, assignSmt)
-						return node
+						return funDecl
 					},
 				},
 			}
 
 			walker := NewNodeWalker(selectors)
-			for _, decl := range helper.dstFile.Decls {
-				_, err = walker.Slide(decl)
-			}
-			fmt.Println("err:", err)
+			_, err = walker.Slide(helper.dstFile)
 
 			if tc.err == nil {
 				require.NoError(t, err)
@@ -389,15 +390,17 @@ package vector
 
 func injector() {
 	a := 123
+	b := 6787
 }
 		`,
-		output: `
-package testing
+		output: `package testing
 
 func injectee() {
+
 	a := 123
+	b := 6787
 }
-		`,
+`,
 	}}
 	for _, tc := range tests {
 		tc := tc // capture range variable
@@ -406,11 +409,7 @@ func injectee() {
 
 			vectorSelectors := []NodeSelector{
 				{
-					Filter: FunctionMatcher("injector"),
-					Map: func(node dst.Node) dst.Node {
-						fmt.Println(node)
-						return node
-					},
+					Map: FuctionFinder("injector"),
 				},
 			}
 			vectorDstHelper, _ := NewDstHelper("", tc.vector)
@@ -420,15 +419,28 @@ func injectee() {
 			vectorNode, _ := vectorWalker.Slide(vectorDstHelper.dstFile)
 
 			vectorFunction := vectorNode.(*dst.FuncDecl)
+			_ = vectorFunction
+			dst.Print(helper.dstFile)
 
 			selectors := []NodeSelector{
 				{
-					Filter: FunctionMatcher("injectee"),
-					Map: func(node dst.Node) dst.Node {
-						functionDecl := node.(*dst.FuncDecl)
+					Map: FuctionFinder("injectee"),
+				},
+				{
+					Map: func(nodeOrFile interface{}) dst.Node {
 
+						switch t := nodeOrFile.(type) {
+						default:
+							fmt.Println("asd")
+							fmt.Println(t)
+							fmt.Println(nodeOrFile.(*dst.FuncDecl).Body)
+
+						}
+
+						_ = vectorFunction
+						functionDecl := nodeOrFile.(*dst.FuncDecl)
 						functionDecl.Body.List = append(functionDecl.Body.List, vectorFunction.Body.List...)
-						return node
+						return nodeOrFile.(dst.Node)
 					},
 				},
 			}
