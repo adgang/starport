@@ -284,7 +284,7 @@ func genesisProtoModify(replacer placeholder.Replacer, opts *typed.Options) genn
 	}
 }
 
-func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
+func genesisTypesModify(opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis.go")
 
@@ -299,15 +299,13 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genn
 		dstHelper.AddImport("fmt")
 		dstHelper.Write()
 
-		templateTypesDefault := `%[2]vList: []%[2]v{},
-%[1]v`
+		templateTypesDefault := `%[1]vList: []%[1]v{},
+`
 		replacementTypesDefault := fmt.Sprintf(
 			templateTypesDefault,
-			typed.PlaceholderGenesisTypesDefault,
 			opts.TypeName.UpperCamel,
 		)
 		typed.AddToDefaultGenesisState(dstHelper, replacementTypesDefault)
-		// content = replacer.Replace(content, typed.PlaceholderGenesisTypesDefault, replacementTypesDefault)
 
 		// lines of code to call the key function with the indexes of the element
 		var indexArgs []string
@@ -316,25 +314,23 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genn
 		}
 		keyCall := fmt.Sprintf("%sKey(%s)", opts.TypeName.UpperCamel, strings.Join(indexArgs, ","))
 
-		templateTypesValidate := `// Check for duplicated index in %[2]v
-%[2]vIndexMap := make(map[string]struct{})
+		templateTypesValidate := `// Check for duplicated index in %[1]v
+%[1]vIndexMap := make(map[string]struct{})
 
-for _, elem := range gs.%[3]vList {
-	index := %[4]v
-	if _, ok := %[2]vIndexMap[index]; ok {
-		return fmt.Errorf("duplicated index for %[2]v")
+for _, elem := range gs.%[2]vList {
+	index := %[3]v
+	if _, ok := %[1]vIndexMap[index]; ok {
+		return fmt.Errorf("duplicated index for %[1]v")
 	}
 	%[2]vIndexMap[index] = struct{}{}
 }
-%[1]v`
+`
 		replacementTypesValidate := fmt.Sprintf(
 			templateTypesValidate,
-			typed.PlaceholderGenesisTypesValidate,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 			fmt.Sprintf("string(%s)", keyCall),
 		)
-		// content = replacer.Replace(content, typed.PlaceholderGenesisTypesValidate, replacementTypesValidate)
 		typed.AddGenesisStateValidation(dstHelper, replacementTypesValidate)
 
 		content, err := dstHelper.Content()
