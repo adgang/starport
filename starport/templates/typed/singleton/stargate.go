@@ -45,7 +45,7 @@ func NewStargate(replacer placeholder.Replacer, opts *typed.Options) (*genny.Gen
 	g.RunFn(moduleGRPCGatewayModify(replacer, opts))
 	g.RunFn(clientCliQueryModify(replacer, opts))
 	g.RunFn(genesisProtoModify(replacer, opts))
-	g.RunFn(genesisTypesModify(replacer, opts))
+	g.RunFn(genesisTypesModify(opts))
 	g.RunFn(genesisModuleModify(replacer, opts))
 	g.RunFn(genesisTestsModify(replacer, opts))
 	g.RunFn(genesisTypesTestsModify(replacer, opts))
@@ -214,7 +214,7 @@ func genesisProtoModify(replacer placeholder.Replacer, opts *typed.Options) genn
 	}
 }
 
-func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
+func genesisTypesModify(opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis.go")
 
@@ -225,11 +225,10 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genn
 			return err
 		}
 
-		templateTypesDefault := `%[2]v: nil,
-%[1]v`
+		templateTypesDefault := `%[1]v: nil,
+`
 		replacementTypesDefault := fmt.Sprintf(
 			templateTypesDefault,
-			typed.PlaceholderGenesisTypesDefault,
 			opts.TypeName.UpperCamel,
 		)
 
