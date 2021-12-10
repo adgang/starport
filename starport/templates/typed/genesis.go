@@ -14,6 +14,9 @@ import (
 // ProtoGenesisStateMessage is the name of the proto message that represents the genesis state
 const ProtoGenesisStateMessage = "GenesisState"
 
+const InitGenesis = "InitGenesis"
+const ExportGenesis = "ExportGenesis"
+
 // GenesisStateHighestFieldNumber returns the highest field number in the genesis state proto message
 // This allows to determine next the field numbers
 func GenesisStateHighestFieldNumber(path string) (int, error) {

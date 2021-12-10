@@ -297,7 +297,6 @@ func genesisTypesModify(opts *typed.Options) genny.RunFn {
 		}
 
 		dstHelper.AddImport("fmt")
-		dstHelper.Write()
 
 		templateTypesDefault := `%[1]vList: []%[1]v{},
 `
@@ -346,7 +345,10 @@ for _, elem := range gs.%[2]vList {
 func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "genesis.go")
-		f, err := r.Disk.Find(path)
+
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
+
 		if err != nil {
 			return err
 		}
@@ -355,24 +357,35 @@ func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) gen
 for _, elem := range genState.%[3]vList {
 	k.Set%[3]v(ctx, elem)
 }
-%[1]v`
+`
 		replacementModuleInit := fmt.Sprintf(
 			templateModuleInit,
 			typed.PlaceholderGenesisModuleInit,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
-		content := replacer.Replace(f.String(), typed.PlaceholderGenesisModuleInit, replacementModuleInit)
+		err = dstHelper.AppendToFunction(typed.InitGenesis, replacementModuleInit)
+		if err != nil {
+			return err
+		}
 
 		templateModuleExport := `genesis.%[3]vList = k.GetAll%[3]v(ctx)
-%[1]v`
+`
 		replacementModuleExport := fmt.Sprintf(
 			templateModuleExport,
 			typed.PlaceholderGenesisModuleExport,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
-		content = replacer.Replace(content, typed.PlaceholderGenesisModuleExport, replacementModuleExport)
+		err = dstHelper.AppendToFunctionBeforeLastStatement(typed.ExportGenesis, replacementModuleExport)
+		if err != nil {
+			return err
+		}
+
+		content, err := dstHelper.Content()
+		if err != nil {
+			return err
+		}
 
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)
