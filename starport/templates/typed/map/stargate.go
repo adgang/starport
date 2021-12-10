@@ -69,7 +69,7 @@ func NewStargate(replacer placeholder.Replacer, opts *typed.Options) (*genny.Gen
 	g.RunFn(moduleGRPCGatewayModify(replacer, opts))
 	g.RunFn(clientCliQueryModify(replacer, opts))
 	g.RunFn(genesisProtoModify(replacer, opts))
-	g.RunFn(genesisTypesModify(replacer, opts))
+	g.RunFn(genesisTypesModify(opts))
 	g.RunFn(genesisModuleModify(replacer, opts))
 	g.RunFn(genesisTestsModify(replacer, opts))
 	g.RunFn(genesisTypesTestsModify(replacer, opts))

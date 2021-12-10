@@ -90,15 +90,14 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *CreateOptions) genn
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis.go")
 
 		// add imports
-		astHelper, err := astutils.NewAstHelper(path)
-		defer astHelper.Close()
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
 
 		if err != nil {
 			return err
 		}
 
-		astHelper.AddNamedImport("github.com/cosmos/ibc-go/modules/core/24-host", "host")
-		astHelper.Write()
+		dstHelper.AddNamedImport("github.com/cosmos/ibc-go/modules/core/24-host", "host")
 
 		f, err := r.Disk.Find(path)
 		if err != nil {
@@ -111,7 +110,12 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *CreateOptions) genn
 		templateDefault := `PortId: PortID,
 %s`
 		replacementDefault := fmt.Sprintf(templateDefault, typed.PlaceholderGenesisTypesDefault)
-		content = replacer.Replace(content, typed.PlaceholderGenesisTypesDefault, replacementDefault)
+		// content = replacer.Replace(content, typed.PlaceholderGenesisTypesDefault, replacementDefault)
+
+		err = typed.AddToDefaultGenesisState(dstHelper, replacementDefault)
+		if err != nil {
+			return err
+		}
 
 		// Validate genesis
 		// PlaceholderIBCGenesisTypeValidate
@@ -120,8 +124,17 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *CreateOptions) genn
 }
 %s`
 		replacementValidate := fmt.Sprintf(templateValidate, typed.PlaceholderGenesisTypesValidate)
-		content = replacer.Replace(content, typed.PlaceholderGenesisTypesValidate, replacementValidate)
+		// content = replacer.Replace(content, typed.PlaceholderGenesisTypesValidate, replacementValidate)
+		err = typed.AddGenesisStateValidation(dstHelper, replacementValidate)
 
+		if err != nil {
+			return err
+		}
+
+		content, err = dstHelper.Content()
+		if err != nil {
+			return err
+		}
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)
 	}
