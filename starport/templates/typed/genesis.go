@@ -72,21 +72,16 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 
 	selectors := []astutils.NodeSelector{
 		{
+			Map: astutils.FuctionFinder("Validate"),
+		},
+		{
 			Filter: astutils.FunctionMatcher("Validate"),
-			Map: func(node dst.Node) dst.Node {
-				body := (nodeToFunction(node)).Body
+			Map: func(node interface{}) dst.Node {
+				fmt.Println("injecting into validate")
+				body := (node.(*dst.FuncDecl)).Body
 				lines := body.List
 				lastLineIndex := len(lines) - 1
 				// append(decs, dst.NewLine)
-				// assignSmt := &dst.AssignStmt{Tok: token.ASSIGN, Lhs: []dst.Expr{&dst.Ident{Name: "list21IdMap"}}, Rhs: []dst.Expr{&dst.BasicLit{Kind: token.STRING, Value: "\"abc\""}}}
-				// body.List = append(body.List[0:lastLineIndex-1], assignSmt, lines[lastLineIndex])
-
-				// fmt.Println("----xxxxx")
-
-				// assignSmt := &dst.AssignStmt{Tok: token.ASSIGN, Lhs: []dst.Expr{&dst.Ident{Name: "list21IdMap"}}, Rhs: []dst.Expr{&dst.BasicLit{Kind: token.STRING, Value: "\"abc\""}}}
-				// body.List = append(body.List[0:lastLineIndex-1], dstF.Decls...)
-
-				// dst.Print(lines[lastLineIndex-2 : lastLineIndex+1])
 
 				// panic(1)
 				// (nodeToFunction(node)).Body.List = append(lines, &dst.CommClause{Comm: dst.Stmt})
@@ -131,17 +126,15 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 		},
 	}
 
-	for _, decl := range dstHelper.DstFile().Decls {
-		walker := astutils.NewNodeWalker(selectors)
+	walker := astutils.NewNodeWalker(selectors)
 
-		node, err := walker.Slide(decl)
-		if err != nil {
-			return fmt.Errorf("could not find function to update file")
-		}
-		if node != nil {
+	node, err := walker.Slide(dstHelper.DstFile())
+	if err != nil {
+		return fmt.Errorf("could not find function to update file")
+	}
+	if node != nil {
 
-			return nil
-		}
+		return nil
 	}
 
 	return fmt.Errorf("could not find place to update file")

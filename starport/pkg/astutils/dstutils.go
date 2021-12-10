@@ -236,14 +236,15 @@ func FunctionMatcher(name string) NodeFilter {
 }
 
 func FuctionFinder(name string) NodeFileMapper {
+
+	// TODO: Currently it only finds functions in dst.File(top level of file). Add deeper finds if necessary
 	return func(nodeOrFile interface{}) dst.Node {
-		fmt.Print(nodeOrFile)
 
 		switch nodeOrFile.(type) {
 		case *dst.File:
-			fmt.Print(nodeOrFile)
-			file := nodeOrFile.(*dst.File)
+			file := *nodeOrFile.(*dst.File)
 			for _, decl := range file.Decls {
+
 				switch decl.(type) {
 				case dst.Decl:
 					declNode := decl.(dst.Decl)
