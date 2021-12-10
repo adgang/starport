@@ -77,29 +77,9 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 		{
 			Filter: astutils.FunctionMatcher("Validate"),
 			Map: func(node interface{}) dst.Node {
-				fmt.Println("injecting into validate")
 				body := (node.(*dst.FuncDecl)).Body
 				lines := body.List
 				lastLineIndex := len(lines) - 1
-				// append(decs, dst.NewLine)
-
-				// panic(1)
-				// (nodeToFunction(node)).Body.List = append(lines, &dst.CommClause{Comm: dst.Stmt})
-				// dst.Print((nodeToFunction(node)).Body.List)
-
-				// dstF, err := decorator.Parse(
-				// 	`package blah
-
-				// func placeholder() {
-
-				//  }
-				// `)
-
-				// templateText := fmt.Sprintf(`package unknown
-				// func placeholder() {
-				// 	%s
-				// }
-				// `, "asd := 123")
 
 				templateText := fmt.Sprintf(`package unknown
 				func placeholder() {
@@ -109,11 +89,9 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 
 				dstF, err := decorator.Parse(templateText)
 
-				fmt.Println("----xxxxx")
-
-				fmt.Println(err)
-				fmt.Println("----xxxxx")
-				dst.Print(dstF)
+				if err != nil {
+					return nil
+				}
 				statements := dstF.Decls[0].(*dst.FuncDecl).Body.List
 				returnStmt := body.List[lastLineIndex]
 				statements[0].Decorations().Before = dst.EmptyLine
@@ -121,7 +99,8 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 				body.List = append(body.List[0:lastLineIndex], statements...)
 				body.List = append(body.List, returnStmt)
 
-				return nil
+				return (node.(*dst.FuncDecl))
+
 			},
 		},
 	}

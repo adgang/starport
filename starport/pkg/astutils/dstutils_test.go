@@ -305,6 +305,7 @@ import (
 }
 
 func TestNodeWalker(t *testing.T) {
+
 	tests := []struct {
 		name   string
 		input  string
@@ -389,6 +390,7 @@ func injectee() {
 package vector
 
 func injector() {
+	
 	a := 123
 	b := 6787
 }

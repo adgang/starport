@@ -191,11 +191,9 @@ type NodeSelector struct {
 }
 
 func (selector *NodeSelector) Process(node dst.Node) dst.Node {
-	fmt.Println("processing")
 
 	if selector.Filter == nil || selector.Filter(node) {
 		newNode := selector.Map(node)
-		fmt.Println(newNode)
 
 		return newNode
 	}
