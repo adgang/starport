@@ -131,11 +131,6 @@ func genesisModuleModify(opts *typed.Options) genny.RunFn {
 			return err
 		}
 
-		_, err = dstHelper.AddImport("fmt")
-		if err != nil {
-			return err
-		}
-
 		templateModuleInit := `// Set all the %[1]v
 for _, elem := range genState.%[2]vList {
 	k.Set%[2]v(ctx, elem)
@@ -179,7 +174,10 @@ genesis.%[1]vCount = k.Get%[1]vCount(ctx)`
 func genesisTestsModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "genesis_test.go")
-		f, err := r.Disk.Find(path)
+
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
+
 		if err != nil {
 			return err
 		}
@@ -199,7 +197,12 @@ func genesisTestsModify(replacer placeholder.Replacer, opts *typed.Options) genn
 			module.PlaceholderGenesisTestState,
 			opts.TypeName.UpperCamel,
 		)
-		content := replacer.Replace(f.String(), module.PlaceholderGenesisTestState, replacementValid)
+		// content := replacer.Replace(f.String(), module.PlaceholderGenesisTestState, replacementValid)
+		err = typed.AddToTestGenesisState(dstHelper, replacementValid)
+		_ = replacementValid
+		if err != nil {
+			return err
+		}
 
 		templateAssert := `require.ElementsMatch(t, genesisState.%[2]vList, got.%[2]vList)
 require.Equal(t, genesisState.%[2]vCount, got.%[2]vCount)
@@ -209,7 +212,17 @@ require.Equal(t, genesisState.%[2]vCount, got.%[2]vCount)
 			module.PlaceholderGenesisTestAssert,
 			opts.TypeName.UpperCamel,
 		)
-		content = replacer.Replace(content, module.PlaceholderGenesisTestAssert, replacementTests)
+		// content = replacer.Replace(content, module.PlaceholderGenesisTestAssert, replacementTests)
+
+		err = typed.AddToTestGenesisRequire(dstHelper, replacementTests)
+		if err != nil {
+			return err
+		}
+
+		content, err := dstHelper.Content()
+		if err != nil {
+			return err
+		}
 
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)
