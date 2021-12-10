@@ -15,7 +15,7 @@ import (
 func genesisModify(replacer placeholder.Replacer, opts *typed.Options, g *genny.Generator) {
 	g.RunFn(genesisProtoModify(replacer, opts))
 	g.RunFn(genesisTypesModify(opts))
-	g.RunFn(genesisModuleModify(replacer, opts))
+	g.RunFn(genesisModuleModify(opts))
 	g.RunFn(genesisTestsModify(replacer, opts))
 	g.RunFn(genesisTypesTestsModify(replacer, opts))
 }
@@ -120,7 +120,7 @@ for _, elem := range gs.%[2]vList {
 	}
 }
 
-func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
+func genesisModuleModify(opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "genesis.go")
 
@@ -136,17 +136,15 @@ func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) gen
 			return err
 		}
 
-		templateModuleInit := `// Set all the %[2]v
-for _, elem := range genState.%[3]vList {
-	k.Set%[3]v(ctx, elem)
+		templateModuleInit := `// Set all the %[1]v
+for _, elem := range genState.%[2]vList {
+	k.Set%[2]v(ctx, elem)
 }
 
-// Set %[2]v count
-k.Set%[3]vCount(ctx, genState.%[3]vCount)
-%[1]v`
+// Set %[1]v count
+k.Set%[2]vCount(ctx, genState.%[2]vCount)`
 		replacementModuleInit := fmt.Sprintf(
 			templateModuleInit,
-			typed.PlaceholderGenesisModuleInit,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
@@ -156,12 +154,10 @@ k.Set%[3]vCount(ctx, genState.%[3]vCount)
 			return err
 		}
 
-		templateModuleExport := `genesis.%[2]vList = k.GetAll%[2]v(ctx)
-genesis.%[2]vCount = k.Get%[2]vCount(ctx)
-%[1]v`
+		templateModuleExport := `genesis.%[1]vList = k.GetAll%[1]v(ctx)
+genesis.%[1]vCount = k.Get%[1]vCount(ctx)`
 		replacementModuleExport := fmt.Sprintf(
 			templateModuleExport,
-			typed.PlaceholderGenesisModuleExport,
 			opts.TypeName.UpperCamel,
 		)
 
