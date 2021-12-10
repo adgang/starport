@@ -289,22 +289,15 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genn
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis.go")
 
 		// add imports
-		astHelper, err := astutils.NewAstHelper(path)
-		defer astHelper.Close()
+		dstHelper, err := astutils.NewDstHelper(path)
+		defer dstHelper.Close()
 
 		if err != nil {
 			return err
 		}
 
-		astHelper.AddImport("fmt")
-		astHelper.Write()
-
-		f, err := r.Disk.Find(path)
-		if err != nil {
-			return err
-		}
-
-		content := f.String()
+		dstHelper.AddImport("fmt")
+		dstHelper.Write()
 
 		templateTypesDefault := `%[2]vList: []%[2]v{},
 %[1]v`
@@ -313,7 +306,8 @@ func genesisTypesModify(replacer placeholder.Replacer, opts *typed.Options) genn
 			typed.PlaceholderGenesisTypesDefault,
 			opts.TypeName.UpperCamel,
 		)
-		content = replacer.Replace(content, typed.PlaceholderGenesisTypesDefault, replacementTypesDefault)
+		typed.AddToDefaultGenesisState(dstHelper, replacementTypesDefault)
+		// content = replacer.Replace(content, typed.PlaceholderGenesisTypesDefault, replacementTypesDefault)
 
 		// lines of code to call the key function with the indexes of the element
 		var indexArgs []string
@@ -340,7 +334,13 @@ for _, elem := range gs.%[3]vList {
 			opts.TypeName.UpperCamel,
 			fmt.Sprintf("string(%s)", keyCall),
 		)
-		content = replacer.Replace(content, typed.PlaceholderGenesisTypesValidate, replacementTypesValidate)
+		// content = replacer.Replace(content, typed.PlaceholderGenesisTypesValidate, replacementTypesValidate)
+		typed.AddGenesisStateValidation(dstHelper, replacementTypesValidate)
+
+		content, err := dstHelper.Content()
+		if err != nil {
+			return nil
+		}
 
 		newFile := genny.NewFileS(path, content)
 		return r.File(newFile)
