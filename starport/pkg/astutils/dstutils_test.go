@@ -2,8 +2,10 @@ package astutils
 
 import (
 	"fmt"
+	"go/token"
 	"testing"
 
+	"github.com/dave/dst"
 	"github.com/stretchr/testify/require"
 )
 
@@ -300,4 +302,151 @@ import (
 
 		})
 	}
+}
+
+func TestNodeWalker(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		vector string
+		output string
+		err    error
+	}{{name: "first",
+		input: `
+package testing
+
+func foo() {
+
+}
+		`,
+		output: `package testing
+
+func foo() {
+
+	a := 123
+}
+`,
+	}}
+	for _, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(tc.name, func(t *testing.T) {
+			helper, err := NewDstHelper("", tc.input)
+
+			assignSmt := &dst.AssignStmt{Tok: token.DEFINE, Lhs: []dst.Expr{&dst.Ident{Name: "a"}}, Rhs: []dst.Expr{&dst.BasicLit{Kind: token.STRING, Value: "123"}}}
+
+			// assignSmt := &dst.AssignStmt{Tok: token.ASSIGN, Lhs: []dst.Expr{&dst.Ident{Name: "list21IdMap"}}, Rhs: []dst.Expr{&dst.BasicLit{Kind: token.STRING, Value: "\"abc\""}}}
+			selectors := []NodeSelector{
+				{
+					Filter: FunctionMatcher("foo"),
+					Map: func(node dst.Node) dst.Node {
+						fmt.Println("mapping...")
+						body := node.(*dst.FuncDecl).Body
+
+						body.List = append(body.List, assignSmt)
+						return node
+					},
+				},
+			}
+
+			walker := NewNodeWalker(selectors)
+			for _, decl := range helper.dstFile.Decls {
+				_, err = walker.Slide(decl)
+			}
+			fmt.Println("err:", err)
+
+			if tc.err == nil {
+				require.NoError(t, err)
+				var content string
+				content, err = helper.Content()
+				require.Equal(t, tc.output, content)
+
+			} else {
+				require.EqualError(t, err, tc.err.Error())
+			}
+
+		})
+	}
+
+}
+
+func TestNodeInjector(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		vector string
+		output string
+		err    error
+	}{{name: "first",
+		input: `
+package testing
+
+func injectee() {
+
+}
+		`,
+		vector: `
+package vector
+
+func injector() {
+	a := 123
+}
+		`,
+		output: `
+package testing
+
+func injectee() {
+	a := 123
+}
+		`,
+	}}
+	for _, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(tc.name, func(t *testing.T) {
+			helper, err := NewDstHelper("", tc.input)
+
+			vectorSelectors := []NodeSelector{
+				{
+					Filter: FunctionMatcher("injector"),
+					Map: func(node dst.Node) dst.Node {
+						fmt.Println(node)
+						return node
+					},
+				},
+			}
+			vectorDstHelper, _ := NewDstHelper("", tc.vector)
+
+			vectorWalker := NewNodeWalker(vectorSelectors)
+
+			vectorNode, _ := vectorWalker.Slide(vectorDstHelper.dstFile)
+
+			vectorFunction := vectorNode.(*dst.FuncDecl)
+
+			selectors := []NodeSelector{
+				{
+					Filter: FunctionMatcher("injectee"),
+					Map: func(node dst.Node) dst.Node {
+						functionDecl := node.(*dst.FuncDecl)
+
+						functionDecl.Body.List = append(functionDecl.Body.List, vectorFunction.Body.List...)
+						return node
+					},
+				},
+			}
+
+			walker := NewNodeWalker(selectors)
+			walker.Slide(helper.dstFile)
+
+			if tc.err == nil {
+				require.NoError(t, err)
+				var content string
+				content, err = helper.Content()
+				require.Equal(t, tc.output, content)
+
+			} else {
+				require.EqualError(t, err, tc.err.Error())
+			}
+
+		})
+	}
+
 }

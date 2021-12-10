@@ -64,17 +64,6 @@ func AddKeysToDefaultGenesisState(dstHelper *astutils.DstHelper, key string, typ
 
 }
 
-func functionMatcher(name string) astutils.NodeFilter {
-	return func(node dst.Node) bool {
-		switch node.(type) {
-		case *dst.FuncDecl:
-			return node.(*dst.FuncDecl).Name.Name == name
-		default:
-			return false
-		}
-	}
-}
-
 func nodeToFunction(node dst.Node) *dst.FuncDecl {
 	return node.(*dst.FuncDecl)
 }
@@ -83,7 +72,7 @@ func AddGenesisStateValidation(dstHelper *astutils.DstHelper, expressionList str
 
 	selectors := []astutils.NodeSelector{
 		{
-			Filter: functionMatcher("Validate"),
+			Filter: astutils.FunctionMatcher("Validate"),
 			Map: func(node dst.Node) dst.Node {
 				body := (nodeToFunction(node)).Body
 				lines := body.List

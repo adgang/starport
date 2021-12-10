@@ -193,7 +193,9 @@ type NodeSelector struct {
 func (selector *NodeSelector) Process(node dst.Node) dst.Node {
 
 	if selector.Filter == nil || selector.Filter(node) {
-		return selector.Map(node)
+		newNode := selector.Map(node)
+
+		return newNode
 	}
 
 	return nil
@@ -218,4 +220,15 @@ func (walker NodeWalker) Slide(node dst.Node) (dst.Node, error) {
 		curNode = selector.Process(curNode)
 	}
 	return curNode, nil
+}
+
+func FunctionMatcher(name string) NodeFilter {
+	return func(node dst.Node) bool {
+		switch node.(type) {
+		case *dst.FuncDecl:
+			return node.(*dst.FuncDecl).Name.Name == name
+		default:
+			return false
+		}
+	}
 }
