@@ -46,7 +46,7 @@ func NewStargate(replacer placeholder.Replacer, opts *typed.Options) (*genny.Gen
 	g.RunFn(clientCliQueryModify(replacer, opts))
 	g.RunFn(genesisProtoModify(replacer, opts))
 	g.RunFn(genesisTypesModify(opts))
-	g.RunFn(genesisModuleModify(replacer, opts))
+	g.RunFn(genesisModuleModify(opts))
 	g.RunFn(genesisTestsModify(replacer, opts))
 	g.RunFn(genesisTypesTestsModify(replacer, opts))
 
@@ -316,7 +316,7 @@ func genesisTypesTestsModify(replacer placeholder.Replacer, opts *typed.Options)
 	}
 }
 
-func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
+func genesisModuleModify(opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "genesis.go")
 
@@ -328,39 +328,33 @@ func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) gen
 		}
 
 		templateModuleInit := `// Set if defined
-if genState.%[3]v != nil {
-	k.Set%[3]v(ctx, *genState.%[3]v)
+if genState.%[2]v != nil {
+	k.Set%[2]v(ctx, *genState.%[2]v)
 }
-%[1]v`
+`
 		replacementModuleInit := fmt.Sprintf(
 			templateModuleInit,
-			typed.PlaceholderGenesisModuleInit,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
-		// content := replacer.Replace(f.String(), typed.PlaceholderGenesisModuleInit, replacementModuleInit)
 
 		err = dstHelper.AppendToFunction("InitGenesis", replacementModuleInit)
-		// err = typed.AddSingletonToInitGenesis(dstHelper, replacementModuleInit)
 		if err != nil {
 			return err
 		}
 
-		templateModuleExport := `// Get all %[2]v
-%[2]v, found := k.Get%[3]v(ctx)
+		templateModuleExport := `// Get all %[1]v
+%[1]v, found := k.Get%[2]v(ctx)
 if found {
-	genesis.%[3]v = &%[2]v
+	genesis.%[2]v = &%[1]v
 }
-%[1]v`
+`
 
 		replacementModuleExport := fmt.Sprintf(
 			templateModuleExport,
-			typed.PlaceholderGenesisModuleExport,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
-		// content = replacer.Replace(content, typed.PlaceholderGenesisModuleExport, replacementModuleExport)
-		// err = typed.AddSingletonToModuleExport(dstHelper, replacementModuleExport)
 		err = dstHelper.AppendToFunctionBeforeLastStatement("ExportGenesis", replacementModuleExport)
 		if err != nil {
 			return err
