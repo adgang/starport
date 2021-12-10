@@ -70,7 +70,7 @@ func NewStargate(replacer placeholder.Replacer, opts *typed.Options) (*genny.Gen
 	g.RunFn(clientCliQueryModify(replacer, opts))
 	g.RunFn(genesisProtoModify(replacer, opts))
 	g.RunFn(genesisTypesModify(opts))
-	g.RunFn(genesisModuleModify(replacer, opts))
+	g.RunFn(genesisModuleModify(opts))
 	g.RunFn(genesisTestsModify(replacer, opts))
 	g.RunFn(genesisTypesTestsModify(replacer, opts))
 
@@ -342,7 +342,7 @@ for _, elem := range gs.%[2]vList {
 	}
 }
 
-func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
+func genesisModuleModify(opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "genesis.go")
 
@@ -353,14 +353,13 @@ func genesisModuleModify(replacer placeholder.Replacer, opts *typed.Options) gen
 			return err
 		}
 
-		templateModuleInit := `// Set all the %[2]v
-for _, elem := range genState.%[3]vList {
-	k.Set%[3]v(ctx, elem)
+		templateModuleInit := `// Set all the %[1]v
+for _, elem := range genState.%[2]vList {
+	k.Set%[2]v(ctx, elem)
 }
 `
 		replacementModuleInit := fmt.Sprintf(
 			templateModuleInit,
-			typed.PlaceholderGenesisModuleInit,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
@@ -369,11 +368,10 @@ for _, elem := range genState.%[3]vList {
 			return err
 		}
 
-		templateModuleExport := `genesis.%[3]vList = k.GetAll%[3]v(ctx)
+		templateModuleExport := `genesis.%[2]vList = k.GetAll%[2]v(ctx)
 `
 		replacementModuleExport := fmt.Sprintf(
 			templateModuleExport,
-			typed.PlaceholderGenesisModuleExport,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
