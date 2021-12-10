@@ -403,7 +403,8 @@ func injectee() {
 	b := 6787
 }
 `,
-	}}
+	},
+	}
 	for _, tc := range tests {
 		tc := tc // capture range variable
 		t.Run(tc.name, func(t *testing.T) {
@@ -422,7 +423,6 @@ func injectee() {
 
 			vectorFunction := vectorNode.(*dst.FuncDecl)
 			_ = vectorFunction
-			dst.Print(helper.dstFile)
 
 			selectors := []NodeSelector{
 				{
@@ -463,4 +463,126 @@ func injectee() {
 		})
 	}
 
+}
+
+func TestFunctionRhsNodeInjector(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		vector string
+		output string
+		err    error
+	}{
+		{
+			name: "inject into rhs object in a function",
+			input: `package something
+
+func injectee(t *testing.T) {
+	genesisState := types.GenesisState{
+
+		Params2: types.DefaultParams(),
+	}
+}
+
+	`,
+			vector: `
+	package vector
+
+	func injector() {
+		genesisState := types.GenesisState{
+			Params1: types.DefaultParams(),
+		}
+}
+			`,
+
+			output: `package something
+
+func injectee(t *testing.T) {
+	genesisState := types.GenesisState{
+
+		Params2: types.DefaultParams(),
+		Params1: types.DefaultParams(),
+	}
+}
+`,
+		},
+	}
+	for _, tc := range tests {
+		tc := tc // capture range variable
+		t.Run(tc.name, func(t *testing.T) {
+			helper, err := NewDstHelper("", tc.input)
+
+			vectorSelectors := []NodeSelector{
+				{
+					Map: FuctionFinder("injector"),
+				},
+			}
+			vectorDstHelper, _ := NewDstHelper("", tc.vector)
+
+			vectorWalker := NewNodeWalker(vectorSelectors)
+
+			vectorNode, _ := vectorWalker.Slide(vectorDstHelper.dstFile)
+
+			fmt.Println(vectorNode)
+
+			vectorFunction := vectorNode.(*dst.FuncDecl)
+
+			// vectorAssignStmt := vectorFunction.Body.List[0].(*dst.AssignStmt)
+			// vectorCompositeLit := vectorAssignStmt.Rhs[0].(*dst.CompositeLit)
+			// dst.Print(vectorCompositeLit.Elts)
+
+			_ = vectorFunction
+
+			selectors := []NodeSelector{
+				{
+					Map: FuctionFinder("injectee"),
+				},
+				{
+					Map: func(nodeOrFile interface{}) dst.Node {
+
+						dst.Print(nodeOrFile)
+						functionDecl := nodeOrFile.(*dst.FuncDecl)
+						return functionDecl.Body.List[0]
+					},
+				},
+				{
+					Map: func(nodeOrFile interface{}) dst.Node {
+
+						assignStmt := nodeOrFile.(*dst.AssignStmt)
+						dst.Print(dst.Print(assignStmt.Rhs))
+						// panic(1)
+						compositeLit := assignStmt.Rhs[0].(*dst.CompositeLit)
+						vectorAssignStmt := vectorFunction.Body.List[0].(*dst.AssignStmt)
+						vectorCompositeLit := vectorAssignStmt.Rhs[0].(*dst.CompositeLit)
+
+						// fmt.Println("-----")
+						// dst.Print(compositeLit.Elts)
+
+						compositeLit.Elts = append(compositeLit.Elts, vectorCompositeLit.Elts...)
+						// fmt.Println("-----")
+						assignStmt.Rhs[0] = dst.Clone(compositeLit).(dst.Expr)
+
+						dst.Print(dst.Print(assignStmt))
+
+						return compositeLit
+					},
+				},
+			}
+
+			walker := NewNodeWalker(selectors)
+			walker.Slide(helper.dstFile)
+			helper.Print()
+
+			if tc.err == nil {
+				require.NoError(t, err)
+				var content string
+				content, err = helper.Content()
+				require.Equal(t, tc.output, content)
+
+			} else {
+				require.EqualError(t, err, tc.err.Error())
+			}
+
+		})
+	}
 }
