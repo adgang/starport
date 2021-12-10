@@ -17,7 +17,7 @@ func genesisModify(replacer placeholder.Replacer, opts *typed.Options, g *genny.
 	g.RunFn(genesisTypesModify(opts))
 	g.RunFn(genesisModuleModify(opts))
 	g.RunFn(genesisTestsModify(opts))
-	g.RunFn(genesisTypesTestsModify(replacer, opts))
+	g.RunFn(genesisTypesTestsModify(opts))
 }
 
 func genesisProtoModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
@@ -223,7 +223,7 @@ require.Equal(t, genesisState.%[1]vCount, got.%[1]vCount)`
 	}
 }
 
-func genesisTypesTestsModify(replacer placeholder.Replacer, opts *typed.Options) genny.RunFn {
+func genesisTypesTestsModify(opts *typed.Options) genny.RunFn {
 	return func(r *genny.Runner) error {
 		path := filepath.Join(opts.AppPath, "x", opts.ModuleName, "types/genesis_test.go")
 
@@ -234,7 +234,7 @@ func genesisTypesTestsModify(replacer placeholder.Replacer, opts *typed.Options)
 			return err
 		}
 
-		templateValid := `%[2]vList: []types.%[2]v{
+		templateValid := `%[1]vList: []types.%[1]v{
 	{
 		Id: 0,
 	},
@@ -242,20 +242,19 @@ func genesisTypesTestsModify(replacer placeholder.Replacer, opts *typed.Options)
 		Id: 1,
 	},
 },
-%[2]vCount: 2,
-%[1]v`
+%[1]vCount: 2,
+`
 		replacementValid := fmt.Sprintf(
 			templateValid,
 			module.PlaceholderTypesGenesisValidField,
 			opts.TypeName.UpperCamel,
 		)
-		// content := replacer.Replace(f.String(), module.PlaceholderTypesGenesisValidField, replacementValid)
 
 		typed.AddToTypesTestGenesisState(dstHelper, replacementValid)
 		templateTests := `{
-	desc:     "duplicated %[2]v",
+	desc:     "duplicated %[1]v",
 	genState: &types.GenesisState{
-		%[3]vList: []types.%[3]v{
+		%[2]vList: []types.%[2]v{
 			{
 				Id: 0,
 			},
@@ -267,25 +266,23 @@ func genesisTypesTestsModify(replacer placeholder.Replacer, opts *typed.Options)
 	valid:    false,
 },
 {
-	desc:     "invalid %[2]v count",
+	desc:     "invalid %[1]v count",
 	genState: &types.GenesisState{
-		%[3]vList: []types.%[3]v{
+		%[2]vList: []types.%[2]v{
 			{
 				Id: 1,
 			},
 		},
-		%[3]vCount: 0,
+		%[2]vCount: 0,
 	},
 	valid:    false,
 },
-%[1]v`
+`
 		replacementTests := fmt.Sprintf(
 			templateTests,
-			module.PlaceholderTypesGenesisTestcase,
 			opts.TypeName.LowerCamel,
 			opts.TypeName.UpperCamel,
 		)
-		// content = replacer.Replace(content, module.PlaceholderTypesGenesisTestcase, replacementTests)
 		typed.AddTestToGenesisStateValidate(dstHelper, replacementTests)
 
 		content, err := dstHelper.Content()
